@@ -1,9 +1,12 @@
-- hosts: all
+- hosts: magareta
   vars:
     couchdb_home: /opt/couchdb
-    node_config_url: "http://127.0.0.1:5984/_node/couchdb@{{dns_hostname}}/_config"
+    local_config_url: "http://127.0.0.1:5984/_node/couchdb@{{ansible_host}}/_config"
     packages: [build-essential, pkg-config, erlang, erlang-reltool, libicu-dev, libmozjs185-dev, libcurl4-openssl-dev, python-sphinx, python-sphinx-rtd-theme]
     build_dir: "/home/alek/couchdb-build" # not in temp because we run out of space
+    ssl_cacert_file: "/etc/letsencrypt/live/magare.otselo.eu/fullchain.pem"
+    ssl_cert_file: "/etc/letsencrypt/live/magare.otselo.eu/cert.pem"
+    ssl_key_file: "/etc/letsencrypt/live/magare.otselo.eu/privkey.pem"
   tasks:
     - name: check couchdb binary
       become: yes
@@ -96,10 +99,41 @@
 
     - name: fix couchdb instance name
       become: yes
-      become_method: sudo
       template:
         src: vm.args.j2
         dest: /opt/couchdb/etc/vm.args
+        owner: couchdb
+        group: couchdb
+      notify:
+        restart couchdb
+
+    - name: configure SSL
+      become: yes
+      template:
+        src: ssl.ini.j2
+        dest: /opt/couchdb/etc/local.d/ssl.ini
+        owner: couchdb
+        group: couchdb
+      notify:
+        restart couchdb
+        
+    - name: configure SDA
+      become: yes
+      template:
+        src: sda.ini.j2
+        dest: /opt/couchdb/etc/local.d/sda.ini
+        owner: couchdb
+        group: couchdb
+      notify:
+        restart couchdb
+
+    - name: Limit erlang ports to support clustering through the Internet
+      become: yes
+      template:
+        src: sys.config.j2
+        dest: /opt/couchdb/releases/2.2.0/sys.config
+        owner: couchdb
+        group: couchdb
       notify:
         restart couchdb
 
@@ -129,14 +163,14 @@
 
     - name: check root account
       uri: 
-        url: "{{ node_config_url }}/admins/"
+        url: "{{ local_config_url }}/admins/"
         return_content: yes
       register: root_account
       ignore_errors: true
 
     - name: check root account with credentials
       uri: 
-        url: "{{ node_config_url }}/admins/"
+        url: "{{ local_config_url }}/admins/"
         user: "{{ admin_user }}"
         password: "{{ admin_password }}"
         force_basic_auth: yes
@@ -146,14 +180,14 @@
 
     - name: add root account
       uri: 
-        url: "{{ node_config_url }}/admins/{{ admin_user | quote }}"
+        url: "{{ local_config_url }}/admins/{{ admin_user | quote }}"
         method: PUT
         body: '"{{ admin_password | quote }}"'
       when: used_credentials is skipped and root_account.json == {}
       
     - name: check public access
       uri: 
-        url: "{{ node_config_url }}/chttpd/bind_address"
+        url: "{{ local_config_url }}/chttpd/bind_address"
         user: "{{ admin_user }}"
         password: "{{ admin_password }}"
         return_content: yes
@@ -162,7 +196,7 @@
 
     - name: set public access
       uri: 
-        url: "{{ node_config_url }}/chttpd/bind_address"
+        url: "{{ local_config_url }}/chttpd/bind_address"
         user: "{{ admin_user }}"
         password: "{{ admin_password }}"
         method: PUT
@@ -172,7 +206,7 @@
 
     - name: check CORS
       uri: 
-        url: "{{ node_config_url }}/httpd/enable_cors"
+        url: "{{ local_config_url }}/httpd/enable_cors"
         user: "{{ admin_user }}"
         password: "{{ admin_password }}"
         return_content: yes
@@ -184,43 +218,43 @@
       block:
         - name: enable CORS
           uri:
-            url: "{{ node_config_url }}/httpd/enable_cors"
+            url: "{{ local_config_url }}/httpd/enable_cors"
             user: "{{ admin_user }}"
             password: "{{ admin_password }}"
             force_basic_auth: yes
             method: PUT
             body: '"true"'
 
-        - name: enable CORS
+        - name: enable CORS origins
           uri:
-            url: "{{ node_config_url }}/cors/origins"
+            url: "{{ local_config_url }}/cors/origins"
             user: "{{ admin_user }}"
             password: "{{ admin_password }}"
             force_basic_auth: yes
             method: PUT
             body: '"*"'
 
-        - name: enable CORS
+        - name: enable CORS credentials
           uri:
-            url: "{{ node_config_url }}/cors/credentials"
+            url: "{{ local_config_url }}/cors/credentials"
             user: "{{ admin_user }}"
             password: "{{ admin_password }}"
             force_basic_auth: yes
             method: PUT
             body: '"true"'
 
-        - name: enable CORS
+        - name: enable CORS methods
           uri:
-            url: "{{ node_config_url }}/cors/methods"
+            url: "{{ local_config_url }}/cors/methods"
             user: "{{ admin_user }}"
             password: "{{ admin_password }}"
             force_basic_auth: yes
             method: PUT
             body: '"GET, PUT, POST, HEAD, DELETE"'
 
-        - name: enable CORS
+        - name: enable CORS headers
           uri:
-            url: "{{ node_config_url }}/cors/headers"
+            url: "{{ local_config_url }}/cors/headers"
             user: "{{ admin_user }}"
             password: "{{ admin_password }}"
             force_basic_auth: yes
@@ -242,17 +276,23 @@
         path: "{{ build_dir }}"
         state: absent
   handlers:
-    - name: restart couchdb
+    - name: Restart couchdb service
       become: yes
       become_method: sudo
       systemd:
         name: couchdb
         state: restarted
       ignore_errors: true
+      listen: restart couchdb
 
-- hosts: node1
+    - name: Give couchdb time to get back up
+      pause:
+        seconds: 3
+      listen: restart couchdb
+
+- hosts: magare1.otselo.eu
   vars:
-    couchdb_url: "http://127.0.0.1:5984"
+    couchdb_url: "http://127.0.0.1:5986"
   tasks:
     - name: get master node databases
       uri:
@@ -281,7 +321,7 @@
           uri:
             url: '{{ couchdb_url }}/_cluster_setup'
             method: POST
-            body: '{"action": "add_node", "host":"magare2.otselo.eu", "port": "5984", "username": "{{admin_user}}", "password":"{{admin_password}}"}'
+            body: {"action": "add_node", "host":'magare2.otselo.eu', "port": "5984", "username": "{{admin_user}}", "password":"{{admin_password}}"}
             body_format: json
             user: "{{ admin_user }}"
             password: "{{ admin_password }}"

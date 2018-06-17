@@ -1,0 +1,41 @@
+- hosts: magareta
+  become: yes
+  tasks:
+    - name: get sda size
+      parted:
+        device: /dev/sda
+        unit: GiB
+      register: sda_info
+
+    - name: expect disk to be around 1TB
+      fail:
+      when: sda_info.disk.size < 900 or sda_info.disk.size > 1100
+
+    - name: partition sda into one partition
+      parted:
+        device: /dev/sda
+        number: 1
+        state: present
+      
+    - name: make a filesystem on sda1
+      filesystem:   
+        fstype: btrfs
+        dev: /dev/sda1
+
+    - name: make mount directory
+      file:
+        path: /mnt/data
+        state: directory
+        owner: couchdb
+        group: couchdb
+
+    - name: mount /dev/sda1 to /mnt/data on boot
+      blockinfile:
+        block: "/dev/sda1 /mnt/data btrfs defaults 0 2"
+        path: /etc/fstab
+      notify: reboot
+
+  handlers:
+    - name: reboot
+      command: systemctl reboot
+

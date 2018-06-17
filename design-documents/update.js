@@ -60,12 +60,6 @@ function(doc, req) {
 
     return doc;
   };
-  var getPreviousRevision = function(revisions) {
-    if (revisions.start == 1) {
-      return 'rev-0';
-    }
-    return 'rev-' + (revisions.start - 1) + '-' + revisions.ids[1];
-  };
 
   var newDoc;
   try {
@@ -92,8 +86,6 @@ function(doc, req) {
         }
       }];
   };
-  log(toJSON(doc));
-  log(toJSON(newDoc));
   var previousRevision = getPreviousRevision(doc._revisions);
   if (typeof doc._attachments[previousRevision] === 'undefined') {
     return [versionized(doc), {

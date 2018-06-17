@@ -1,0 +1,31 @@
+- hosts: balkanets-router
+  gather_facts: no
+  connection: paramiko
+  vars:
+    public_ip: 84.1.244.138
+    magare_internal_host: 192.168.88.3
+    magare_name: magare1
+  tasks:
+    # - name: check magare.otselo.eu is up, if not:
+    # - name: find if at least one magare is alive
+    #   uri: {{item}}/_up
+    # - name: point magare.otselo.eu to the alive magare
+
+    # - name: for all magareta
+    #   - check they appear in the cluster, if not add them
+    #   - configure their HAProxy to be up if they stand behind magare.otselo.eu:5984
+    #
+    # TODO delete old values
+    # TODO hangs on first command - does not work - try https://github.com/CFSworks/ansible-routeros
+    # Source: https://wiki.mikrotik.com/wiki/Manual:IP/Firewall/NAT Section `Port mapping/forwarding`
+    - name: tunnel ports to magare
+      raw: '/ip firewall nat add chain=dstnat dst-address={{public_ip}} dst-port={{item}} action=dst-nat protocol=tcp to-address={{magare_internal_host}} to-port={{item}}'
+      loop:
+        - 5984
+        - 4369
+        - 6984
+        - "9100-9200"
+
+    #  tunnel 4369 through to magare behind the router
+    #  tunnel ports 9100-9200 through to magare behind the router
+

@@ -1,0 +1,59 @@
+- hosts: magare1.otselo.eu
+  become: yes
+  become_method: sudo
+  vars:
+    domain: magare.otselo.eu
+    certbot_auto_renew: false
+    certbot_create_if_missing: yes
+    certbot_create_method: standalone
+    certbot_admin_email: akodzhabashev@gmail.com
+    certbot_create_standalone_stop_services: []
+    certbot_certs:
+      - domains:
+        - '{{domain}}'
+    certbot_install_from_source: yes
+    certbot_dir: /opt/certbot
+  roles:
+    - geerlingguy.certbot
+  tasks:
+    - name: Pull certificate
+      become: yes
+      become_method: sudo
+      synchronize: 
+        mode: pull
+        src: /etc/letsencrypt/
+        dest: etc-letsencrypt
+
+- hosts: magare2.otselo.eu
+  vars:
+    domain: magare.otselo.eu
+  tasks:
+    - name: Ensure certificate directory exists
+      become: yes
+      become_method: sudo
+      file:
+        path: /etc/letsencrypt/
+        state: directory
+        owner: root
+        group: root
+
+    - name: Push certificate
+      become: yes
+      become_method: sudo
+      synchronize: 
+        src: etc-letsencrypt/
+        dest: /etc/letsencrypt/
+
+- hosts: magareta
+  vars:
+    domain: magare.otselo.eu
+  tasks:
+    - name: Make magare own the letsencrypt directory
+      become: yes
+      become_method: sudo
+      file:
+        path: /etc/letsencrypt
+        owner: couchdb
+        group: couchdb
+        recurse: yes
+        state: directory
