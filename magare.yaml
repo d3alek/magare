@@ -16,7 +16,13 @@
         device: /dev/sda
         number: 1
         state: present
-      
+      register: partition_result
+
+    - name: give disk some time to sync
+      pause:
+        seconds: 10
+      when: partition_result.changed
+
     - name: make a filesystem on sda1
       filesystem:   
         fstype: btrfs
@@ -34,6 +40,8 @@
         block: "/dev/sda1 /mnt/data btrfs defaults 0 2"
         path: /etc/fstab
       notify: reboot
+
+      # sometimes have to execute again to fix mount directory permissions
 
   handlers:
     - name: reboot

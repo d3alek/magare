@@ -1,3 +1,7 @@
+## Manual Setup
+Make sure user on`magareta` has passwordless sudo access:
+
+> echo "<user> ALL = (root) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/<user>
 ## Launch CouchDB install playbook
 > ansible-playbook couchdb.yaml -e @couchdb_variables.yaml --ask-vault-pass
 

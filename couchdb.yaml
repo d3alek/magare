@@ -1,7 +1,7 @@
 - hosts: magareta
   vars:
     couchdb_home: /opt/couchdb
-    local_config_url: "http://127.0.0.1:5984/_node/couchdb@{{ansible_host}}/_config"
+    local_config_url: "http://127.0.0.1:5984/_node/couchdb@{{inventory_hostname}}/_config"
     packages: [build-essential, pkg-config, erlang, erlang-reltool, libicu-dev, libmozjs185-dev, libcurl4-openssl-dev, python-sphinx, python-sphinx-rtd-theme]
     build_dir: "/home/alek/couchdb-build" # not in temp because we run out of space
     ssl_cacert_file: "/etc/letsencrypt/live/magare.otselo.eu/fullchain.pem"
@@ -109,21 +109,33 @@
 
     - name: configure SSL
       become: yes
-      template:
-        src: ssl.ini.j2
-        dest: /opt/couchdb/etc/local.d/ssl.ini
+      ini_file:
+        path: /opt/couchdb/etc/local.ini
+        section: '{{item.section}}'
+        option: '{{item.option}}'
+        value: '{{item.value}}'
         owner: couchdb
         group: couchdb
+      with_items:
+        - { section: daemons, option: httpsd, value: '{chttpd, start_link, [https]}' }
+        - { section: ssl, option: cert_file, value: '{{ ssl_cert_file }}' }
+        - { section: ssl, option: key_file, value: '{{ ssl_key_file }}' }
+        - { section: ssl, option: cacert_file, value: '{{ ssl_cacert_file }}' }
       notify:
         restart couchdb
         
     - name: configure SDA
       become: yes
-      template:
-        src: sda.ini.j2
-        dest: /opt/couchdb/etc/local.d/sda.ini
+      ini_file:
+        path: /opt/couchdb/etc/local.ini
+        section: couchdb
+        option: '{{item}}'
+        value: /mnt/data
         owner: couchdb
         group: couchdb
+      with_items:
+        - database_dir
+        - view_index_dir
       notify:
         restart couchdb
 
@@ -136,6 +148,10 @@
         group: couchdb
       notify:
         restart couchdb
+
+        #    - name: make couchdb directories only user and group accessible (again)
+        #      become: yes
+        #      command: find /opt/couchdb -type d -exec chmod 0770 {} \; 
 
     - name: create couchdb systemd service file
       become: yes
@@ -293,6 +309,7 @@
 - hosts: magare1.otselo.eu
   vars:
     couchdb_url: "http://127.0.0.1:5986"
+    couchdb_membership_url: "http://127.0.0.1:5984"
   tasks:
     - name: get master node databases
       uri:
@@ -339,3 +356,22 @@
             password: "{{ admin_password }}"
             force_basic_auth: yes
             status_code: 201
+            
+    - name: get membership
+      uri:
+        url: '{{ couchdb_membership_url }}/_membership'
+        user: "{{ admin_user }}"
+        password: "{{ admin_password }}"
+        force_basic_auth: yes
+        return_content: yes
+      register: membership
+
+    - name: add magare3 
+      when: '"couchdb@magare3.otselo.eu" not in membership.json.cluster_nodes'
+      uri:
+        url: '{{ couchdb_url }}/_nodes/couchdb@magare3.otselo.eu'
+        method: PUT
+        user: "{{ admin_user }}"
+        password: "{{ admin_password }}"
+        force_basic_auth: yes
+        return_content: yes

@@ -24,7 +24,7 @@
         src: /etc/letsencrypt/
         dest: etc-letsencrypt
 
-- hosts: magare2.otselo.eu
+- hosts: [magare2.otselo.eu,magare3.otselo.eu]
   vars:
     domain: magare.otselo.eu
   tasks:
