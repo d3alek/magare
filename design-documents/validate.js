@@ -2,7 +2,6 @@ function(newDoc, oldDoc, userCtx, secObj) {
   if (userCtx.roles.indexOf('_admin') !== -1) {
     return;
   }
-
   if (typeof newDoc === 'undefined' || newDoc === null || newDoc['_deleted'] === true) {
     throw({forbidden: 'Not allowed to delete documents.'});
   }

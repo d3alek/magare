@@ -1,0 +1,36 @@
+{
+  "name": "sova-js",
+  "version": "1.0.0",
+  "description": "Magare Admin interface",
+  "private": true,
+  "sideEffects": false,
+  "license": "MIT",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack --config webpack.prod.js",
+    "start": "webpack-dev-server --open --config webpack.dev.js"
+  },
+  "dependencies": {
+    "pouchdb": "^7.0.0",
+    "react": "^16.4.1",
+    "react-dom": "^16.4.1"
+  },
+  "author": "d3alek",
+  "devDependencies": {
+    "@babel/core": "^7.0.0-beta.51",
+    "@babel/polyfill": "^7.0.0-beta.51",
+    "@babel/preset-env": "^7.0.0-beta.51",
+    "@babel/preset-react": "^7.0.0-beta.51",
+    "babel-loader": "^8.0.0-beta.4",
+    "clean-webpack-plugin": "^0.1.19",
+    "css-loader": "^0.28.11",
+    "html-webpack-plugin": "^3.2.0",
+    "html-webpack-template": "^6.2.0",
+    "style-loader": "^0.21.0",
+    "uglifyjs-webpack-plugin": "^1.2.6",
+    "webpack": "^4.12.1",
+    "webpack-cli": "^3.0.8",
+    "webpack-dev-server": "^3.1.4",
+    "webpack-merge": "^4.1.3"
+  }
+}

@@ -107,6 +107,15 @@
       notify:
         restart couchdb
 
+    - name: install libcap2 from apt
+      become: yes
+      apt:
+        name: libcap2-bin 
+
+    - name: allow couchdb to access ports < 1024
+      become: yes
+      command: setcap 'cap_net_bind_service=+ep' /opt/couchdb/erts-8.2.1/bin/beam.smp
+
     - name: configure SSL
       become: yes
       ini_file:
@@ -121,9 +130,27 @@
         - { section: ssl, option: cert_file, value: '{{ ssl_cert_file }}' }
         - { section: ssl, option: key_file, value: '{{ ssl_key_file }}' }
         - { section: ssl, option: cacert_file, value: '{{ ssl_cacert_file }}' }
+        - { section: ssl, option: port, value: '443' }
       notify:
         restart couchdb
-        
+
+    - name: configure vhosts
+      become: yes
+      ini_file:
+        path: /opt/couchdb/etc/local.ini
+        section: vhosts
+        option: '{{item.option}}'
+        value: '{{item.value}}'
+        owner: couchdb
+        group: couchdb
+      with_items:
+        - { option: magare.otselo.eu, value: '/' }
+        - { option: '{{inventory_hostname}}', value: '/' }
+        - { option: ':webapp.otselo.eu/bundle.js', value: '/webapps/:webapp/bundle.js' }
+        - { option: ':webapp.otselo.eu', value: '/webapps/:webapp/index.html' }
+      notify:
+        restart couchdb
+
     - name: configure SDA
       become: yes
       ini_file:
