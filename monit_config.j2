@@ -1,0 +1,16 @@
+set logfile syslog
+
+# only accessible through localhost
+set httpd port 2812 and
+  allow localhost
+  allow {{ admin_user }}:{{ admin_password }}
+
+check system $HOST
+  if loadavg (1min) > 4 then alert
+  if loadavg (5min) > 2 then alert
+  if cpu usage > 95% for 10 cycles then alert
+  if memory usage > 75% then alert
+
+check filesystem log2ram with path /var/log
+  if space usage > 70% then alert
+  if space usage > 90% then restart

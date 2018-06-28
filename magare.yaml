@@ -35,15 +35,36 @@
         owner: couchdb
         group: couchdb
 
+    # sometimes have to execute again to fix mount directory permissions
     - name: mount /dev/sda1 to /mnt/data on boot
       blockinfile:
         block: "/dev/sda1 /mnt/data btrfs defaults 0 2"
         path: /etc/fstab
       notify: reboot
 
-      # sometimes have to execute again to fix mount directory permissions
+    - name: install monit
+      apt: 
+        name: monit
+
+    - name: configure monit
+      template:
+        src: monit_config.j2
+        dest: /etc/monit/conf.d/monit_config
+      notify: restart monit
+
+    - name: enable and start monit
+      systemd:
+        name: monit
+        daemon_reload: yes
+        enabled: yes
+        state: started
 
   handlers:
     - name: reboot
       command: systemctl reboot
+
+    - name: restart monit
+      systemd:
+        name: monit
+        state: restarted
 
