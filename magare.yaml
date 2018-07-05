@@ -1,4 +1,4 @@
-- hosts: magareta
+- hosts: magare2.otselo.eu
   become: yes
   tasks:
     - name: get sda size
@@ -11,22 +11,38 @@
       fail:
       when: sda_info.disk.size < 900 or sda_info.disk.size > 1100
 
-    - name: partition sda into one partition
+    - name: make sure log2ram is disabled
+      systemd:
+        name: log2ram
+        enabled: false
+      notify: reboot
+
+    - name: make 1GiB logs partition
       parted:
         device: /dev/sda
         number: 1
         state: present
-      register: partition_result
+        part_end: 1GiB
+      register: partition_result1
+
+    - name: make data partition
+      parted:
+        device: /dev/sda
+        number: 2
+        state: present
+        part_start: 1GiB
+      register: partition_result2
 
     - name: give disk some time to sync
       pause:
         seconds: 10
-      when: partition_result.changed
+      when: partition_result1.changed or partition_result2.changed
 
-    - name: make a filesystem on sda1
+    - name: make filesystems on sda1 and sda2
       filesystem:   
         fstype: btrfs
-        dev: /dev/sda1
+        dev: /dev/{{item}}
+      with_items: [sda1, sda2]
 
     - name: make mount directory
       file:
@@ -35,10 +51,17 @@
         owner: couchdb
         group: couchdb
 
-    # sometimes have to execute again to fix mount directory permissions
-    - name: mount /dev/sda1 to /mnt/data on boot
+    # have to run it twice to set the correct permissions
+    - name: mount /dev/sda1 to /var/log on boot
       blockinfile:
-        block: "/dev/sda1 /mnt/data btrfs defaults 0 2"
+        marker: "# {mark} /var/log ANSIBLE MANAGED BLOCK"
+        block: "/dev/sda1 /var/log btrfs defaults 0 2"
+        path: /etc/fstab
+      notify: reboot
+    - name: mount /dev/sda2 to /mnt/data on boot
+      blockinfile:
+        marker: "# {mark} /mnt/data ANSIBLE MANAGED BLOCK"
+        block: "/dev/sda2 /mnt/data btrfs defaults 0 2"
         path: /etc/fstab
       notify: reboot
 
@@ -59,6 +82,10 @@
         enabled: yes
         state: started
 
+    - name: install rrdtool # used for manual graphing of collectd
+      apt:
+        name: rrdtool
+
   handlers:
     - name: reboot
       command: systemctl reboot
@@ -67,4 +94,3 @@
       systemd:
         name: monit
         state: restarted
-

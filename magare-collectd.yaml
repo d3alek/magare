@@ -1,0 +1,26 @@
+- hosts: magare1.otselo.eu
+  become: yes
+  vars:
+    - couchdb_system_monitor_dir: /opt/couchdb-system-monitor
+  tasks:
+    #TODO couchdb make bucket magare#-monitor
+    #TODO push design to it
+    - name: install collectd and needed optional dependencies
+      apt:
+        name: "{{item}}"
+      with_items: [collectd, libyajl2]
+    - name: create a couchdb-system-monitor directory
+      file:
+        path: "{{couchdb_system_monitor_dir}}"
+        state: directory
+    - name: push the update executable
+      template:
+        src: configure_collectd_write_http.sh.j2
+        dest: "{{couchdb_system_monitor_dir}}/configure_collectd_write_http.sh"
+        mode: u+x
+        validate: /bin/bash %s 
+    - name: write a cron task which runs the update script daily at midnight
+      cron:
+        name: update collectd.write_http config every hour
+        minute: 0
+        job: /bin/bash {{couchdb_system_monitor_dir}}/configure_collectd_write_http.sh

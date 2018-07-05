@@ -1,0 +1,75 @@
+- hosts: magare1.otselo.eu
+  vars:
+    couchdb_url: "http://127.0.0.1:5984"
+    couchdb_nodes_url: "http://127.0.0.1:5986"
+  tasks:
+    - name: get master node databases
+      uri:
+        url: '{{ couchdb_url }}/_all_dbs'
+        user: "{{ admin_user }}"
+        password: "{{ admin_password }}"
+        force_basic_auth: yes
+        return_content: yes
+      register: master_dbs
+
+    - name: initial cluster setup
+      when: '"_replicator" not in master_dbs.json'
+      block:
+        - name: initialize cluster
+          uri:
+            url: '{{ couchdb_url }}/_cluster_setup'
+            method: POST
+            body: '{"action": "enable_cluster", "bind_address":"0.0.0.0", "username": "{{admin_user}}", "password":"{{admin_password}}", "port": 5984, "node_count": "8", "remote_node": "$NODE", "remote_current_user": "{{admin_user}}", "remote_current_password": "{{admin_password}}" }'
+            body_format: json
+            user: "{{ admin_user }}"
+            password: "{{ admin_password }}"
+            force_basic_auth: yes
+            status_code: 201
+
+        - name: add magare2 to cluster
+          uri:
+            url: '{{ couchdb_url }}/_cluster_setup'
+            method: POST
+            body: {"action": "add_node", "host":'magare2.otselo.eu', "port": "5984", "username": "{{admin_user}}", "password":"{{admin_password}}"}
+            body_format: json
+            user: "{{ admin_user }}"
+            password: "{{ admin_password }}"
+            force_basic_auth: yes
+            status_code: 201
+          ignore_errors: yes # errors with "Document update conflict" on playbook repeat
+
+        - name: finish cluster setup
+          uri:
+            url: '{{ couchdb_url }}/_cluster_setup'
+            method: POST
+            body: '{"action": "finish_cluster"}'
+            body_format: json
+            user: "{{ admin_user }}"
+            password: "{{ admin_password }}"
+            force_basic_auth: yes
+            status_code: 201
+
+    - name: get membership
+      uri:
+        url: '{{ couchdb_url }}/_membership'
+        user: "{{ admin_user }}"
+        password: "{{ admin_password }}"
+        force_basic_auth: yes
+        return_content: yes
+      register: membership
+
+    - name: add rest of magareta
+      when: 'item not in membership.json.cluster_nodes'
+      uri:
+        url: '{{ couchdb_nodes_url }}/_nodes/{{item}}'
+        method: PUT
+        body: '{}'
+        body_format: json
+        user: "{{ admin_user }}"
+        password: "{{ admin_password }}"
+        force_basic_auth: yes
+        status_code: 201
+      with_items: 
+        - couchdb@magare1.otselo.eu
+        - couchdb@magare2.otselo.eu
+        - couchdb@magare3.otselo.eu

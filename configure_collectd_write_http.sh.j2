@@ -1,0 +1,18 @@
+#/bin/bash
+DATE="$(date --utc +%Y-%m-%dT%H)"
+PATH="/etc/collectd/collectd.conf.d/write_http_couchdb.conf"
+echo "Updating $PATH for $DATE"
+/bin/cat > $PATH << END
+LoadPlugin write_http
+
+<Plugin write_http>
+	<Node "couchdb">
+		URL "http://localhost:5984/{{magare_name}}-monitor/_design/collectd/_update/write_http/$DATE"
+		Format "JSON"
+		StoreRates true
+		BufferSize 409600
+	</Node>
+</Plugin>
+END
+/bin/systemctl restart collectd
+/usr/bin/curl -H "Content-Type: application/json" -X POST "http://{{admin_user}}:{{admin_password}}@localhost:5984/{{magare_name}}-monitor/_compact"
