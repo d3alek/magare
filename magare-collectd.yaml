@@ -34,6 +34,12 @@
       apt:
         name: "{{item}}"
       with_items: [collectd, libyajl2]
+    - name: disable rrdtool collectd module
+      become: yes
+      lineinfile: 
+        path: /etc/collectd/collectd.conf
+        regexp: '^LoadPlugin rrdtool'
+        line: '#LoadPlugin rrdtool'
     - name: create a couchdb-system-monitor directory
       become: yes
       file:

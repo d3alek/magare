@@ -2,3 +2,5 @@ couchdb_variables.yaml
 *.retry
 design-documents/user_colon_password.txt
 etc-letsencrypt
+id_rsa_magare
+couchapp/venv

@@ -10,10 +10,10 @@
         password: "{{ admin_password }}"
         force_basic_auth: yes
         return_content: yes
-      register: master_dbs
+      register: all_dbs
 
     - name: initial cluster setup
-      when: '"_replicator" not in master_dbs.json'
+      when: '"_replicator" not in all_dbs.json'
       block:
         - name: initialize cluster
           uri:
@@ -73,3 +73,13 @@
         - couchdb@magare1.otselo.eu
         - couchdb@magare2.otselo.eu
         - couchdb@magare3.otselo.eu
+
+    - name: make webapps database
+      when: '"webapps" not in all_dbs.json'
+      uri:
+        url: '{{couchdb_url}}/webapps?q=1'
+        method: PUT
+        user: "{{ admin_user }}"
+        password: "{{ admin_password }}"
+        force_basic_auth: yes
+

@@ -188,10 +188,6 @@
       notify:
         restart couchdb
 
-        #    - name: make couchdb directories only user and group accessible (again)
-        #      become: yes
-        #      command: find /opt/couchdb -type d -exec chmod 0770 {} \; 
-
     - name: create couchdb systemd service file
       become: yes
       become_method: sudo
