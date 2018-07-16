@@ -8,12 +8,12 @@ if [ "$EXISTS" -eq "404" ]; then
   echo "Making new document $WEBAPP"
   SUCCESS=$(curl -s -o /dev/null -w "%{http_code}" -X PUT -H "Content-Type: application/json" https://$USER:$PASS@magare.otselo.eu/webapps/$WEBAPP -d '{}')
   echo "Success? $SUCCESS"
-  if [ "$SUCCESS" -ne "200" ]; then
+  if [ "$SUCCESS" -ne "202" ]; then
     exit 1
   fi
 fi
 
-REV=$(curl https://magare.otselo.eu/webapps/admin | python -c "import sys, json; print(json.load(sys.stdin)['_rev'])")
+REV=$(curl https://magare.otselo.eu/webapps/$1 | python -c "import sys, json; print(json.load(sys.stdin)['_rev'])")
 
 echo "Revision $REV"
 
@@ -26,7 +26,7 @@ if [ "$SUCCESS" -ne "202" ]; then
   exit 1
 fi
 
-REV=$(curl https://magare.otselo.eu/webapps/admin | python -c "import sys, json; print(json.load(sys.stdin)['_rev'])")
+REV=$(curl https://magare.otselo.eu/webapps/$1 | python -c "import sys, json; print(json.load(sys.stdin)['_rev'])")
 
 SUCCESS=$(curl -s -o /dev/null -w "%{http_code}" -X PUT -H "Content-Type: application/x-javascript" https://$USER:$PASS@magare.otselo.eu/webapps/$WEBAPP/bundle.js?rev=$REV -d @$WEBAPP/dist/bundle.js)
 echo "bundle.js success? $SUCCESS"
