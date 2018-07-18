@@ -55,3 +55,8 @@
 # Limit Erlang Distributed to port range 9100-9200 to support firewall
 -kernel inet_dist_listen_min 9100
 -kernel inet_dist_listen_max 9200
+
+# Make Erlang Distributed communicate over TLS
+-pa {{ssl_dir}}
+-proto_dist inet_tls
+-ssl_dist_opt server_certfile {{ssl_cert_file}} server_keyfile {{ssl_key_file}}

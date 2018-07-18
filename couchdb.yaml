@@ -4,9 +4,10 @@
     local_config_url: "http://127.0.0.1:5984/_node/couchdb@{{inventory_hostname}}/_config"
     packages: [build-essential, pkg-config, erlang, erlang-reltool, libicu-dev, libmozjs185-dev, libcurl4-openssl-dev, python-sphinx, python-sphinx-rtd-theme]
     build_dir: "/home/alek/couchdb-build" # not in temp because we run out of space
-    ssl_cacert_file: "/etc/letsencrypt/live/magare.otselo.eu/fullchain.pem"
-    ssl_cert_file: "/etc/letsencrypt/live/magare.otselo.eu/cert.pem"
-    ssl_key_file: "/etc/letsencrypt/live/magare.otselo.eu/privkey.pem"
+    ssl_dir: "/etc/letsencrypt/live/magare.otselo.eu"
+    ssl_cacert_file: "{{ssl_dir}}/fullchain.pem"
+    ssl_cert_file: "{{ssl_dir}}/cert.pem"
+    ssl_key_file: "{{ssl_dir}}/privkey.pem"
   tasks:
     - name: check couchdb binary
       become: yes
