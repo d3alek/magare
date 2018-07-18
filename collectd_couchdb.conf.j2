@@ -1,0 +1,28 @@
+LoadPlugin curl_json
+<Plugin curl_json>
+  <URL "http://localhost:5986/_stats">
+    Host "couchdb"
+    Instance "httpd"
+
+    <Key "couch_log/level/*/value">
+      Type "count"
+    </Key>
+
+    <Key "couchdb/httpd/requests/value">
+      Type "count"
+    </Key>
+
+    <Key "couchdb/httpd_request_methods/*/value">
+      Type "count"
+    </Key>
+
+    <Key "couchdb/httpd_status_codes/*/value">
+      Type "count"
+    </Key>
+
+    <Key "couch_replicator/cluster_is_stable/value">
+      Type "gauge"
+    </Key>
+
+  </URL>
+</Plugin>

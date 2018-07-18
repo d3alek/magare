@@ -178,15 +178,15 @@
       notify:
         restart couchdb
 
-    - name: Limit erlang ports to support clustering through the Internet
-      become: yes
-      template:
-        src: sys.config.j2
-        dest: /opt/couchdb/releases/2.2.0/sys.config
-        owner: couchdb
-        group: couchdb
-      notify:
-        restart couchdb
+        #    - name: Limit erlang ports to support clustering through the Internet
+        #      become: yes
+        #      template:
+        #        src: sys.config.j2
+        #        dest: /opt/couchdb/releases/2.2.0/sys.config
+        #        owner: couchdb
+        #        group: couchdb
+        #      notify:
+        #        restart couchdb
 
     - name: create couchdb systemd service file
       become: yes

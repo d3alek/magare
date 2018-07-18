@@ -2,6 +2,7 @@
 Make sure user on`magareta` has passwordless sudo access:
 
 > echo "<user> ALL = (root) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/<user>
+
 ## Launch CouchDB install playbook
 > ansible-playbook couchdb.yaml -e @couchdb_variables.yaml --ask-vault-pass
 
@@ -15,3 +16,7 @@ Intially do:
 > ./update-version-control.sh "" $BUCKET user_colon_password.txt update.js validate.js
 
 Then to update the design documents, specify a revision as the first argument instead of `""`
+
+## Ansible Galaxy requirements
+
+> ansible-galaxy install ipr-cnrs.nftables 
