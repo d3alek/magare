@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 import ReactDOM from 'react-dom';
 import PouchDB from 'pouchdb';
@@ -26,7 +27,6 @@ class Senses extends Component {
     this.state = {
       level: 0,
       prefix: "" ,
-      levelSenses: null,
     };
   }
 
@@ -34,7 +34,7 @@ class Senses extends Component {
     const level = this.state.level;
     const prefix = this.state.prefix;
     if (senses.length == 1) {
-      this.props.selectSense(senses[0].join('/'))
+      this.props.selectSense(senses[0].join('/'));
     }
     else {
       var newLevel = level + 1;
@@ -44,61 +44,62 @@ class Senses extends Component {
         newLevel = newLevel + 1;
         newPrefix = newPrefix + '/' + senses[0][newLevel-1]
         levelSenses = getLevelSenses(this.props.senses, newLevel, newPrefix)
-        console.log("in do loop " + newLevel + " " + newPrefix + " " + Object.keys(levelSenses).length);
       }
 
       this.setState({
         level: newLevel,
         prefix: newPrefix, 
-        levelSenses: levelSenses
       });
     }
   }
 
-  levelDown() {
-    //TODO fix
+  levelDown(newLevel) {
     const level = this.state.level;
     const prefix = this.state.prefix;
 
-    var newLevel = level - 1;
     var newPrefix = prefix.split('/').slice(0, newLevel).join('/');
     var levelSenses = getLevelSenses(this.props.senses, newLevel, newPrefix)
-    while (Object.keys(levelSenses).length == 1) {
+    while (newLevel >= 0 && Object.keys(levelSenses).length == 1) {
       newLevel = newLevel - 1;
       newPrefix = prefix.split('/').slice(0, newLevel).join('/');
       levelSenses = getLevelSenses(this.props.senses, newLevel, newPrefix)
-      console.log("level-down in do loop " + newLevel + " " + newPrefix + " " + Object.keys(levelSenses).length + " " + newPrefix);
     }
 
     this.setState({
       level: newLevel,
       prefix: newPrefix,
-      levelSenses: levelSenses
     });
   }
 
   render() {
     const level = this.state.level;
-    var levelSenses = this.state.levelSenses;
-    if (!levelSenses) {
-      levelSenses = getLevelSenses(this.props.senses, 0, "");
-    }
-    console.log(this.props.senses);
-    console.log(levelSenses);
-    const senseList = Object.keys(levelSenses).map( sensePrefix => (
-      <li key={sensePrefix}>
-        <button onClick={() => this.levelUp(levelSenses[sensePrefix])}>
+    const prefix = this.state.prefix;
+    const levelSenses = getLevelSenses(this.props.senses, level, prefix);
+    const selected = this.props.selected;
+    console.log(selected);
+    const senseList = Object.keys(levelSenses).sort().map( sensePrefix => (
+      <li className="nav-item" key={sensePrefix}>
+        <a href="#" className={"nav-link " + (levelSenses[sensePrefix][0].join('/') === selected ? "active" : "")} onClick={() => this.levelUp(levelSenses[sensePrefix])}>
           {sensePrefix}
-        </button>
+        </a>
+      </li>
+    ));
+    const sensePath = ["all"].concat(prefix.split('/')).map( (step, index) => (
+      <li key={step+index} className="breadcrumb-item" onClick={() => this.levelDown(index)}>
+        <a href="#">{step}</a>
       </li>
     ));
 
     return (
-      <div>
-        <ul>
+      <div className="row">
+        <nav aria-label="breadcrumb">
+          <ol className="breadcrumb">
+            {sensePath}
+          </ol>
+        </nav>
+        <ul className="nav nav-pills">
           {senseList}
         </ul>
-        {level > 0 ? <button onClick={() => this.levelDown()}>Back</button> : ''}
       </div>
     );
   }
@@ -127,7 +128,6 @@ class Monitor extends Component {
     const senses = latestDoc.rows[0].doc;
 
     this.setState({
-      //documents: documents.rows.filter(d => !d.id.startsWith('_design'))
       senses: senses
     });
   }
@@ -143,9 +143,11 @@ class Monitor extends Component {
     const selectedSense = this.state.selectedSense;
 
     return (
-      <div className="monitor">
-        { selectedSense ? (<LineChart data={senses[selectedSense]}/>) : ''}
-        <Senses senses={Object.keys(senses)} selectSense={this.selectSense}/>
+      <div className="monitor mt-3">
+        <Senses selected={selectedSense} senses={Object.keys(senses)} selectSense={this.selectSense}/>
+        <div className="row">
+          { selectedSense ? (<LineChart data={senses[selectedSense]}/>) : ''}
+        </div>
       </div>
     );
   }
@@ -170,17 +172,15 @@ class MonitorList extends Component {
 
   render() {
     const monitors = this.state.monitors.map( monitor => 
-        <li key={monitor}>
-          <button onClick={() => this.props.onClick(monitor)}>
-            {monitor}
-          </button> 
+        <li className="nav-item" key={monitor}>
+          <a href="#" className={ "nav-link " + (monitor === this.props.selected ? 'active' : '')} key={monitor} onClick={() => this.props.onClick(monitor)}>{monitor}</a> 
         </li>
     );
 
     return (
-      <div className='monitor-list'>
+      <ul className="nav nav-pills mt-1">
         {monitors}
-      </div>
+      </ul>
     );
   }
 }
@@ -202,8 +202,8 @@ class App extends Component {
   render() {
     const selectedMonitor = this.state.selectedMonitor;
     return (
-      <div className='app'>
-        <MonitorList onClick={(monitor) => this.handleMonitorClick(monitor)}/>
+      <div className='app container'>
+        <MonitorList selected={selectedMonitor} onClick={(monitor) => this.handleMonitorClick(monitor)}/>
         {selectedMonitor ? (<Monitor key={selectedMonitor} name={selectedMonitor}/>) : ''}
       </div>
     );

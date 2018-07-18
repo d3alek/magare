@@ -8,7 +8,7 @@ if [ "$EXISTS" -eq "404" ]; then
   echo "Making new document $WEBAPP"
   SUCCESS=$(curl -s -o /dev/null -w "%{http_code}" -X PUT -H "Content-Type: application/json" https://$USER:$PASS@magare.otselo.eu/webapps/$WEBAPP -d '{}')
   echo "Success? $SUCCESS"
-  if [ "$SUCCESS" -ne "202" ]; then
+  if [ "$SUCCESS" -ne "201" ]; then
     exit 1
   fi
 fi
@@ -22,7 +22,7 @@ cd $WEBAPP && npm run-script build && cd ..
 SUCCESS=$(curl -s -o /dev/null -w "%{http_code}" -X PUT -H "Content-Type: text/html" https://$USER:$PASS@magare.otselo.eu/webapps/$WEBAPP/index.html?rev=$REV -d @$WEBAPP/dist/index.html)
 echo "index.html success? $SUCCESS"
 
-if [ "$SUCCESS" -ne "202" ]; then
+if [ "$SUCCESS" -ne "201" ]; then
   exit 1
 fi
 
@@ -31,7 +31,7 @@ REV=$(curl https://magare.otselo.eu/webapps/$1 | python -c "import sys, json; pr
 SUCCESS=$(curl -s -o /dev/null -w "%{http_code}" -X PUT -H "Content-Type: application/x-javascript" https://$USER:$PASS@magare.otselo.eu/webapps/$WEBAPP/bundle.js?rev=$REV -d @$WEBAPP/dist/bundle.js)
 echo "bundle.js success? $SUCCESS"
 
-if [ "$SUCCESS" -ne "202" ]; then
+if [ "$SUCCESS" -ne "201" ]; then
   exit 1
 fi
 

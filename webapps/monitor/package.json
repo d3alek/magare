@@ -11,6 +11,7 @@
     "start": "webpack-dev-server --open --config webpack.dev.js"
   },
   "dependencies": {
+    "bootstrap": "^4.1.2",
     "d3": "^5.5.0",
     "pouchdb": "^7.0.0",
     "react": "^16.4.1",
