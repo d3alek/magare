@@ -9,7 +9,7 @@ window.ENDPOINT = 'https://magare.otselo.eu/';
 
 
 function getLevelSenses(senses, level, prefix) {
-  const filteredSenses = senses.filter(s => !s.startsWith('_')).filter(s => s.startsWith(prefix));
+  const filteredSenses = senses.filter(s => s.startsWith(prefix));
   const levelSenses = {};
   filteredSenses.map( s => {
     const split = s.split('/');
@@ -76,7 +76,6 @@ class Senses extends Component {
     const prefix = this.state.prefix;
     const levelSenses = getLevelSenses(this.props.senses, level, prefix);
     const selected = this.props.selected;
-    console.log(selected);
     const senseList = Object.keys(levelSenses).sort().map( sensePrefix => (
       <li className="nav-item" key={sensePrefix}>
         <a href="#" className={"nav-link " + (levelSenses[sensePrefix][0].join('/') === selected ? "active" : "")} onClick={() => this.levelUp(levelSenses[sensePrefix])}>
@@ -97,7 +96,7 @@ class Senses extends Component {
             {sensePath}
           </ol>
         </nav>
-        <ul className="nav nav-pills">
+        <ul className="nav nav-pills ml-3 pt-1">
           {senseList}
         </ul>
       </div>
@@ -109,13 +108,16 @@ class Monitor extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      senses: [],
+      doc: null,
       selectedSense: null,
     }
     this.selectSense = this.selectSense.bind(this);
   }
 
   async componentDidMount() {
+    if (!this.props.name) {
+      return;
+    }
     const db = new PouchDB(window.ENDPOINT + this.props.name);
     const latestDoc = await db.allDocs({
       include_docs: true,
@@ -124,11 +126,10 @@ class Monitor extends Component {
       limit: 1
     });
 
-    console.log(latestDoc);
-    const senses = latestDoc.rows[0].doc;
+    const doc = latestDoc.rows[0].doc;
 
     this.setState({
-      senses: senses
+      doc: doc 
     });
   }
 
@@ -139,15 +140,14 @@ class Monitor extends Component {
   }
 
   render() {
-    const senses = this.state.senses;
+    const doc = this.state.doc;
     const selectedSense = this.state.selectedSense;
+    const senseNames = doc ? Object.keys(doc).filter(s => !s.startsWith("_")) : [];
 
     return (
-      <div className="monitor mt-3">
-        <Senses selected={selectedSense} senses={Object.keys(senses)} selectSense={this.selectSense}/>
-        <div className="row">
-          { selectedSense ? (<LineChart data={senses[selectedSense]}/>) : ''}
-        </div>
+      <div className="monitor mt-3" style={{height:"90%"}}>
+        <Senses selected={selectedSense} senses={senseNames} selectSense={this.selectSense}/>
+        <LineChart data={selectedSense ? doc[selectedSense] : []}/>
       </div>
     );
   }
@@ -202,9 +202,9 @@ class App extends Component {
   render() {
     const selectedMonitor = this.state.selectedMonitor;
     return (
-      <div className='app container'>
+      <div className='container' style={{height:"100vh"}}>
         <MonitorList selected={selectedMonitor} onClick={(monitor) => this.handleMonitorClick(monitor)}/>
-        {selectedMonitor ? (<Monitor key={selectedMonitor} name={selectedMonitor}/>) : ''}
+        <Monitor key={selectedMonitor} name={selectedMonitor}/>
       </div>
     );
   }

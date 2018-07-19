@@ -20,56 +20,69 @@ class LineChart extends Component {
   constructor(props) {
     super(props);
     const margin = {top: 20, right: 80, bottom: 30, left: 80};
-    const width = 960 - margin.left - margin.right;
-    const height = 500 - margin.top - margin.bottom;
+    d3.select(this.refs.chart)
     this.state = {
-      margin: margin,
-      width: width,
-      height: height,
+      margin: margin
     }
     this.setContext = this.setContext.bind(this);
   }
 
   componentDidMount() {
-    console.log("Did mount");
     const g = this.setContext();
     this.setBackground();
   }
 
   componentDidUpdate() {
-    console.log("Did update");
     this.setBackground();
   }
 
-  setContext() {
-    const margin = this.state.margin;
-    const width = this.state.width;
-    const height = this.state.height;
+  transformHeight(xAxis, height) {
+      xAxis.attr("transform", "translate(0," + height + ")");
+  }
 
+  setContext() {
     const svg = d3.select(this.refs.chart);
+
+    const margin = this.state.margin;
+    const height = svg.property('clientHeight') - margin.top - margin.bottom;
+    this.setState({
+      height: height
+    });
+
     const gEnter = svg
       .append('g')
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-    svg.attr("width", width + margin.left + margin.right);
-    gEnter.append("g")
-          .attr("class", "axis axis-x")
-          .attr("transform", "translate(0," + height + ")");
+    const xAxis = gEnter.append("g")
+          .attr("class", "axis axis-x");
+    this.transformHeight(xAxis, height);
     gEnter.append("g")
           .attr("class", "axis axis-y");
   }
 
   setBackground() {
+    const margin = this.state.margin;
+
     const svg = d3.select(this.refs.chart);
     const g = svg.select("g");
-    const x = d3.scaleTime().range([0, this.state.width]);
-    const y = d3.scaleLinear().range([this.state.height, 0]);
+
+    const width = svg.property('clientWidth') - margin.left - margin.right;
+    const height = svg.property('clientHeight') - margin.top - margin.bottom;
+    if (height != this.state.height) {
+      const xAxis = g.select('.axis-x');
+      this.transformHeight(xAxis, height);
+    }
+
+    const x = d3.scaleTime().range([0, width]);
+    const y = d3.scaleLinear().range([height, 0]);
     const line = d3.line()
       .x(function(d) { return x(d.date); })
       .y(function(d) { return y(d.value); });
 
     const data = parseData(this.props.data);
 
-    x.domain(d3.extent(data, function(d) { return d.date; }));
+    const minDate = d3.min(data, function(d) { return d.date });
+    const maxDate = d3.max(data, function(d) { return d.date });
+    x.domain([minDate, maxDate]);
     y.domain([
       d3.min(data, function(d) { return d.value; }),
       d3.max(data, function(d) { return d.value; })
@@ -80,13 +93,11 @@ class LineChart extends Component {
 
     const sense = g.selectAll(".sense")
       .data([{values: data}]);
-    console.log(sense);
 
     const senseEnter = sense.enter()
       .append("g")
       .attr("class", "sense");
 
-    console.log(senseEnter);
 
     senseEnter.append("path")
       .attr("class", "line");
@@ -100,7 +111,7 @@ class LineChart extends Component {
       .style("stroke", function(d) { return getColor(d); })
       .style("fill", "none")
       .transition() 
-        .attr("d", function(d) { console.log(d); return line(d.values); })
+        .attr("d", function(d) { return line(d.values); })
   
     sense.exit()
       .remove();
@@ -109,8 +120,13 @@ class LineChart extends Component {
   }
 
   render() {
+    const data = parseData(this.props.data);
+    const minDate = d3.min(data, function(d) { return d.date });
+    const maxDate = d3.max(data, function(d) { return d.date });
+
+    const save = (<p>{minDate ? new Date(minDate).toLocaleString() : ''} до {maxDate ? new Date(maxDate).toLocaleTimeString() : ''}</p>)
     return (
-      <svg className="d3-container" ref='chart' width={960} height={500}></svg>
+      <svg className="d3-container" ref='chart' width="100%" height="90%"></svg>
     );
   }
 }
