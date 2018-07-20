@@ -43,10 +43,11 @@ module.exports = {
   plugins: [
     new CleanWebpackPlugin(['dist']),
     new HtmlWebpackPlugin({
-      inject: false,
+      inject: true,
       template: require('html-webpack-template'),
       title: 'Magare Monitor',
-      appMountId: 'app'
+      appMountId: 'app',
+      meta: {viewport: 'width=device-width, initial-scale=1, shrink-to-fit=no'} 
     })
   ]
 };

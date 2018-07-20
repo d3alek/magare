@@ -91,14 +91,16 @@ class Senses extends Component {
 
     return (
       <div className="row">
-        <nav aria-label="breadcrumb">
-          <ol className="breadcrumb">
-            {sensePath}
-          </ol>
-        </nav>
-        <ul className="nav nav-pills ml-3 pt-1">
-          {senseList}
-        </ul>
+        <div className="col-xs-12">
+          <nav aria-label="breadcrumb">
+            <ol className="breadcrumb">
+              {sensePath}
+            </ol>
+          </nav>
+          <ul className="nav nav-pills ml-3 pt-1">
+            {senseList}
+          </ul>
+        </div>
       </div>
     );
   }
@@ -178,9 +180,11 @@ class MonitorList extends Component {
     );
 
     return (
-      <ul className="nav nav-pills mt-1">
-        {monitors}
-      </ul>
+      <div className="row">
+        <ul className="col-xs-12 nav nav-pills mt-1">
+          {monitors}
+        </ul>
+      </div>
     );
   }
 }
