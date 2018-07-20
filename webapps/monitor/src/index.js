@@ -7,7 +7,6 @@ import LineChart from './LineChart';
 
 window.ENDPOINT = 'https://magare.otselo.eu/';
 
-
 function getLevelSenses(senses, level, prefix) {
   const filteredSenses = senses.filter(s => s.startsWith(prefix));
   const levelSenses = {};
@@ -91,16 +90,14 @@ class Senses extends Component {
 
     return (
       <div className="row">
-        <div className="col-xs-12">
-          <nav aria-label="breadcrumb">
-            <ol className="breadcrumb">
-              {sensePath}
-            </ol>
-          </nav>
-          <ul className="nav nav-pills ml-3 pt-1">
-            {senseList}
-          </ul>
-        </div>
+        <nav aria-label="breadcrumb">
+          <ol className="breadcrumb">
+            {sensePath}
+          </ol>
+        </nav>
+        <ul className="nav nav-pills ml-3 pt-1">
+          {senseList}
+        </ul>
       </div>
     );
   }
@@ -110,29 +107,48 @@ class Monitor extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      doc: null,
+      docs: [],
       selectedSense: null,
+      sinceHours: 0,
+      toHours: 1
     }
     this.selectSense = this.selectSense.bind(this);
+  }
+  
+  async loadDocs(sinceHours, toHours) {
+    const db = new PouchDB(window.ENDPOINT + this.props.name);
+    // TODO this assumes no gaps in data - which there always are. Do a different query instead
+    const latestDoc = await db.allDocs({
+      include_docs: true,
+      descending: true,
+      skip: Math.max(1, 2 - toHours),
+      limit: sinceHours + toHours
+    });
+
+    const docs = latestDoc.rows.map(r => r.doc);
+
+    this.setState({
+      docs: docs
+    });
   }
 
   async componentDidMount() {
     if (!this.props.name) {
       return;
     }
-    const db = new PouchDB(window.ENDPOINT + this.props.name);
-    const latestDoc = await db.allDocs({
-      include_docs: true,
-      descending: true,
-      skip: 1,
-      limit: 1
-    });
+    this.loadDocs(this.state.sinceHours, this.state.toHours);
+  }
 
-    const doc = latestDoc.rows[0].doc;
+  async componentDidUpdate(prevProps, prevState) {
+    if (!this.props.name) {
+      return;
+    }
 
-    this.setState({
-      doc: doc 
-    });
+    if ( this.props.name !== prevProps.name
+      || this.state.sinceHours !== prevState.sinceHours
+      || this.state.toHours !== prevState.toHours) {
+      await this.loadDocs(this.state.sinceHours, this.state.toHours);
+    }
   }
 
   selectSense(sense) {
@@ -141,15 +157,54 @@ class Monitor extends Component {
     });
   }
 
+  changeSinceHours(adjustment) {
+    if (this.state.sinceHours + adjustment < 0
+      || this.state.sinceHours + adjustment + this.state.toHours < 0) {
+      return;
+    }
+    this.setState({
+      sinceHours: this.state.sinceHours+adjustment
+    })
+  }
+  changeToHours(adjustment) {
+    if (this.state.toHours + adjustment > 1 
+      || this.state.sinceHours + (this.state.toHours + adjustment) < 1) {
+      return;
+    }
+    this.setState({
+      toHours: this.state.toHours+adjustment
+    })
+  }
+
   render() {
-    const doc = this.state.doc;
+    const sinceHours = this.state.sinceHours;
+    const toHours = this.state.toHours;
+    const docs = this.state.docs;
     const selectedSense = this.state.selectedSense;
-    const senseNames = doc ? Object.keys(doc).filter(s => !s.startsWith("_")) : [];
+    const senseNames = docs ?
+      Array.from(new Set(docs.map(doc => Object.keys(doc).filter(s => !s.startsWith("_"))).flatten())) 
+        : [];
+    const data = selectedSense ? docs.map(doc => doc[selectedSense]).flatten() : [];
+    const thisHour = new Date();
+    thisHour.setSeconds(0);
+    thisHour.setMinutes(0);
+    const sinceString = new Date(thisHour.getTime() - sinceHours*1000*60*60).toLocaleString();
+    const toString = toHours === 1 ? new Date().toLocaleString() : new Date(thisHour.getTime() + toHours*1000*60*60).toLocaleString();
 
     return (
       <div className="monitor mt-3" style={{height:"90%"}}>
         <Senses selected={selectedSense} senses={senseNames} selectSense={this.selectSense}/>
-        <LineChart data={selectedSense ? doc[selectedSense] : []}/>
+        <div className="btn-group mr-2" role="group" aria-label="Second group">
+          <button type="button" className="btn btn-secondary" onClick={() => this.changeSinceHours(+1)}>-</button>
+          <button type="button" className="btn btn-secondary">{sinceString}</button>
+          <button type="button" className="btn btn-secondary" onClick={() => this.changeSinceHours(-1)}>+</button>
+        </div>
+        <div className="btn-group mr-2" role="group" aria-label="Second group">
+          <button type="button" className="btn btn-secondary" onClick={() => this.changeToHours(-1)}>-</button>
+          <button type="button" className="btn btn-secondary">{toString}</button>
+          <button type="button" className="btn btn-secondary" onClick={() => this.changeToHours(+1)}>+</button>
+        </div>
+        <LineChart data={data}/>
       </div>
     );
   }
@@ -208,7 +263,7 @@ class App extends Component {
     return (
       <div className='container' style={{height:"100vh"}}>
         <MonitorList selected={selectedMonitor} onClick={(monitor) => this.handleMonitorClick(monitor)}/>
-        <Monitor key={selectedMonitor} name={selectedMonitor}/>
+        <Monitor name={selectedMonitor}/>
       </div>
     );
   }
