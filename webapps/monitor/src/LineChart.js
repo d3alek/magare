@@ -13,6 +13,14 @@ function parseData(data) {
   return data.map(parseDatum).filter(d => !isNaN(d.value)).sort((a,b) => a.date - b.date);
 }
 
+function getWidth(selection) {
+  return selection.node().getBoundingClientRect().width;
+}
+
+function getHeight(selection) {
+  return selection.node().getBoundingClientRect().height;
+}
+
 function getColor(d) {
   return "#4CAF50"; // green
 }
@@ -44,7 +52,7 @@ class LineChart extends Component {
     const svg = d3.select(this.refs.chart);
 
     const margin = this.state.margin;
-    const height = svg.property('clientHeight') - margin.top - margin.bottom;
+    const height = getHeight(svg) - margin.top - margin.bottom;
     this.setState({
       height: height
     });
@@ -65,8 +73,8 @@ class LineChart extends Component {
     const svg = d3.select(this.refs.chart);
     const g = svg.select("g");
 
-    const width = svg.property('clientWidth') - margin.left - margin.right;
-    const height = svg.property('clientHeight') - margin.top - margin.bottom;
+    const width = getWidth(svg) - margin.left - margin.right;
+    const height = getHeight(svg) - margin.top - margin.bottom;
     if (height != this.state.height) {
       const xAxis = g.select('.axis-x');
       this.transformHeight(xAxis, height);
