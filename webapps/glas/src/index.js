@@ -6,6 +6,7 @@ import PouchDB from 'pouchdb';
 import { markdown } from 'markdown'
 import { BrowserRouter as Router, Link, Route } from 'react-router-dom';
 import { versionControl, blobAsText } from './version-control.js';
+import { EditComment, EditDoc, EditUser } from './edit.js';
 
 import plugin from 'pouchdb-authentication';
 
@@ -13,132 +14,6 @@ PouchDB.plugin(plugin);
 
 window.ENDPOINT = 'https://magare.otselo.eu/';
 window.DB = 'features';
-window.COLS = 50;
-
-function calculateRows(text) {
-  var linecount = 0;
-  if (!text) {
-    return 1;
-  }
-  text.split('\n').forEach( l => linecount += Math.ceil(l.length/window.COLS));
-  return linecount+1;
-}
-
-class EditComment extends Component {
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      title: null,
-      description: null
-    };
-
-    this.handleSubmit = this.handleSubmit.bind(this);
-    this.handleChange = this.handleChange.bind(this);
-  }
-
-  handleChange(event) {
-    const target = event.target;
-    const value = target.type === 'checkbox' ? target.checked : target.value;
-    const name = target.name;
-
-    this.setState({
-      [name]: value
-    });
-  }
-
-  async handleSubmit(event, toDelete) {
-    event.preventDefault();
-
-    const newComment = this.props.comment || {};
-    newComment.message = this.state.message || newComment.message;
-    if (toDelete) {
-      newComment.message = null;
-    }
-    const id = await this.props.handleCommentChanged(newComment);
-    window.location.href = '/d/' + id;
-  }
-
-  render() {
-    const comment = this.props.comment || {message:''};
-    const message = this.state.message || comment.message;
-
-    // TODO show MD formatted text
-    return (
-      <form onSubmit={this.handleSubmit}>
-        <div className="form-group">
-          <ul className="nav nav-tabs">
-            <li className="nav-item"><a className="nav-link active">Неформатиран текст</a></li>
-            <li className="nav-item"><a className="nav-link" href="#markdown">Форматиран текст</a></li>
-          </ul>
-          <textarea className="form-control" name="message" cols={window.COLS} rows={calculateRows(message)} value={message} onChange={this.handleChange}/>
-        </div>
-        <button type="submit" className="btn btn-primary">Изпрати</button>
-        <button className="btn btn-danger" onClick={(e) => this.handleSubmit(e, true)}>Изтрий</button>
-        <Link to={'/d/' + this.props.docId}>
-          <button className="btn btn-secondary">Откажи</button>
-        </Link>
-      </form>
-    );
-  }
-}
-
-class EditDoc extends Component {
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      title: null,
-      description: null
-    };
-
-    this.handleSubmit = this.handleSubmit.bind(this);
-    this.handleChange = this.handleChange.bind(this);
-  }
-
-  handleChange(event) {
-    const target = event.target;
-    const value = target.type === 'checkbox' ? target.checked : target.value;
-    const name = target.name;
-
-    this.setState({
-      [name]: value
-    });
-  }
-
-  async handleSubmit(event) {
-    event.preventDefault();
-    const newDoc = this.props.doc || {};
-    newDoc.title = this.state.title || newDoc.title;
-    newDoc.description = this.state.description || newDoc.description;
-    const id = await this.props.handleDocChanged(newDoc);
-    window.location.href = '/d/' + id;
-  }
-
-  render() {
-    const doc = this.props.doc || {title: '',description: ''};
-    const title = this.state.title || doc.title;
-    const description = this.state.description || doc.description;
-    // TODO show MD formatted text
-    
-    return (
-      <form onSubmit={this.handleSubmit}>
-        <input className="form-control" type="text" name="title" value={title} onChange={this.handleChange}/>
-        <div className="form-group">
-          <ul className="nav nav-tabs">
-            <li className="nav-item"><a className="nav-link active">Неформатиран текст</a></li>
-            <li className="nav-item"><a className="nav-link" href="#markdown">Форматиран текст</a></li>
-          </ul>
-          <textarea className="form-control" name="description" cols={window.COLS} rows={calculateRows(description)} value={description} onChange={this.handleChange}/>
-        </div>
-        <button type="submit" className="btn btn-primary">Изпрати</button>
-        <Link to={doc._id ? ('/d/' + doc._id) : '/'}>
-          <button className="btn btn-secondary">Откажи</button>
-        </Link>
-      </form>
-    );
-  }
-}
 
 class DocDetails extends Component {
   render() {
@@ -256,6 +131,9 @@ class NavBar extends Component {
         });
       }
     }
+    else {
+      window.location.href = '/user';
+    }
   }
 
   handleChange(event) {
@@ -303,7 +181,7 @@ class NavBar extends Component {
             <input className="form-control mr-sm-2" type="password" name="password" placeholder="Парола" aria-label="Парола" onChange={this.handleChange}/>
             <button className="btn btn-outline-success my-2 my-sm-0" type="submit">Влез/Запиши се</button>
           </form>
-          ) : user}
+          ) : <Link to="/user">{user}</Link> }
         </div>
       </nav>
     );
@@ -511,6 +389,9 @@ class App extends Component {
                   handleCommentChanged={(newComment) => this.handleCommentChanged(newComment, doc)}/>
               </div>
           )}}/>
+          <Route path='/user' render={ () => (
+            <EditUser user={user} db={db}/>  
+          )}/>
         </div>
       </Router>
     );
