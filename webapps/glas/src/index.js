@@ -7,6 +7,10 @@ import { markdown } from 'markdown'
 import { BrowserRouter as Router, Link, Route } from 'react-router-dom';
 import { versionControl, blobAsText } from './version-control.js';
 
+import plugin from 'pouchdb-authentication';
+
+PouchDB.plugin(plugin);
+
 window.ENDPOINT = 'https://magare.otselo.eu/';
 window.DB = 'features';
 window.COLS = 50;
@@ -128,7 +132,7 @@ class EditDoc extends Component {
           <textarea className="form-control" name="description" cols={window.COLS} rows={calculateRows(description)} value={description} onChange={this.handleChange}/>
         </div>
         <button type="submit" className="btn btn-primary">Изпрати</button>
-        <Link to={'/d/' + doc._id}>
+        <Link to={doc._id ? ('/d/' + doc._id) : '/'}>
           <button className="btn btn-secondary">Откажи</button>
         </Link>
       </form>
@@ -215,9 +219,57 @@ class DocList extends Component {
 class NavBar extends Component {
   constructor(props) {
     super(props);
+
+    this.state = {
+      user: null
+    };
+
+    this.handleLoginRegister = this.handleLoginRegister.bind(this);
+    this.handleChange = this.handleChange.bind(this);
+  }
+
+  async handleLoginRegister(event) {
+    event.preventDefault();
+
+    const name = this.state.name;
+    const password = this.state.password;
+
+    if (name && password) {
+      const response = await this.props.db.logIn(name, password).catch(err => {
+        if (err) {
+          if (err.name === 'unauthorized' || err.name === 'forbidden') {
+            // name or password incorrect
+            // TODO redirect to a page
+            return null;
+          } else {
+            // other error
+            // TODO redirect to a page
+            return null;
+          }
+        }
+      });
+
+      // TODO make a user profile page
+      if (response) {
+        this.setState({
+          user: response.name
+        });
+      }
+    }
+  }
+
+  handleChange(event) {
+    const target = event.target;
+    const value = target.type === 'checkbox' ? target.checked : target.value;
+    const name = target.name;
+
+    this.setState({
+      [name]: value
+    });
   }
 
   render() {
+    const user = this.state.user || this.props.user;
     const path = this.props.path.map(part => {
       return part[1] === null ? (
         <li key="active" className="active breadcrumb-item">
@@ -245,11 +297,13 @@ class NavBar extends Component {
             {path}
           </ol>
 
-          <form className="form-inline my-2 my-lg-0">
-            <input className="form-control mr-sm-2" type="text" placeholder="Име" aria-label="Име"/>
-            <input className="form-control mr-sm-2" type="text" placeholder="Парола" aria-label="Парола"/>
-            <button className="btn btn-outline-success my-2 my-sm-0" type="submit">Влез</button>
+        { !user ? (
+          <form className="form-inline my-2 my-lg-0" onSubmit={this.handleLoginRegister}>
+            <input className="form-control mr-sm-2" type="text" name="name" placeholder="Име" aria-label="Име" onChange={this.handleChange}/>
+            <input className="form-control mr-sm-2" type="password" name="password" placeholder="Парола" aria-label="Парола" onChange={this.handleChange}/>
+            <button className="btn btn-outline-success my-2 my-sm-0" type="submit">Влез/Запиши се</button>
           </form>
+          ) : user}
         </div>
       </nav>
     );
@@ -259,7 +313,12 @@ class NavBar extends Component {
 class App extends Component {
   constructor(props) {
     super(props);
-    const db = versionControl(new PouchDB(window.ENDPOINT + window.DB, { skip_setup: true}));
+    const db = versionControl(new PouchDB(window.ENDPOINT + window.DB, {
+      fetch(url, opts) { // as per https://github.com/pouchdb-community/pouchdb-authentication/issues/239#issuecomment-403506880
+        opts.credentials='include'
+        return PouchDB.fetch(url, opts)
+      },
+      skip_setup: true}));
 
     this.state = {
       docs: [],
@@ -293,21 +352,28 @@ class App extends Component {
 
   async componentDidMount() {
     const docs = await this.getAllDocs();
+    const session = await this.state.db.getSession();
+
     if (docs) {
       this.setState({
-        docs: docs
+        docs: docs,
+        user: session.userCtx.name
       });
     }
   }
 
   async handleDocChanged(newDoc) {
-    // TODO submit button adds user to editors if not present
     if (!newDoc._id) {
       const uuid = await fetch(window.ENDPOINT + '_uuids')
         .then(r => r.json())
         .then(r => r.uuids[0]);
       newDoc._id = 'vote-' + uuid.substr(24);
     }
+    const user = this.state.user;
+    if (!newDoc.editors || newDoc.editors.indexOf(user) === -1) {
+      newDoc.editors = (newDoc.editors || []).concat([user]);
+    }
+    newDoc.author = user;
     await this.state.db.put(newDoc);
     const docs = await this.getAllDocs();
     this.setState({
@@ -317,9 +383,10 @@ class App extends Component {
   }
 
   async handleCommentChanged(newComment, doc) {
+    const user = this.state.user;
     if (! (newComment.at && newComment.author)) {
-      newComment.at = new Date().toISOString(); // TODO do on server side
-      newComment.author = "Author"; // TODO do on server side
+      newComment.at = new Date().toISOString();
+      newComment.author = user;
     }
     const comments = doc.comments || [];
     var index = comments.findIndex(c => 
@@ -335,6 +402,7 @@ class App extends Component {
       comments[index] = newComment;
     }
     doc.comments = comments;
+    doc.author = user;
     await this.state.db.put(doc);
     const docs = await this.getAllDocs();
     this.setState({
@@ -370,6 +438,8 @@ class App extends Component {
 
   render() {
     const docs = this.state.docs;
+    const user = this.state.user;
+    const db = this.state.db;
 
     const error = this.state.error;
     const errorMessage = error ?
@@ -383,7 +453,7 @@ class App extends Component {
           {errorMessage}
           <Route exact path='/' render={ () => (
             <div>
-              <NavBar path={[[root[0],null]]}/>
+              <NavBar path={[[root[0],null]]} user={user} db={db}/>
               <DocList docs={docs}/>
             </div>
           )}/>
@@ -395,7 +465,7 @@ class App extends Component {
             ];
             return doc && (
             <div>
-              <NavBar path={path}/>
+              <NavBar path={path} user={user} db={db}/>
               <DocDetails 
                 doc={doc}
                 handleRevisionChanged={(doc, version) => this.handleRevisionChanged(doc, version)}/>
@@ -414,7 +484,7 @@ class App extends Component {
 
             return (
               <div>
-                <NavBar path={path}/>
+                <NavBar path={path} user={user} db={db}/>
                 <EditDoc 
                   doc={doc}
                   handleDocChanged={(newDoc) => this.handleDocChanged(newDoc)}/>
@@ -424,19 +494,20 @@ class App extends Component {
             const doc = docs[match.params.docId];
             const commentAuthor = match.params.commentAuthor;
             const commentAt = match.params.commentAt;
+            const comment = doc && doc.comments && doc.comments.find(c => 
+                    c.author === commentAuthor 
+                    && c.at === commentAt);
             const path = [
               root,
               [doc && doc.title,'/d/'+match.params.docId],
-              [commentAuthor+'-'+commentAt,null]
+              [comment ? (commentAuthor+'-'+commentAt) : 'Нов коментар',null]
             ];
             return doc && (
               <div>
-                <NavBar path={path}/>
+                <NavBar path={path} user={user} db={db}/>
                 <EditComment
                   docId={doc._id}
-                  comment={doc.comments && doc.comments.find(c => 
-                    c.author === commentAuthor 
-                    && c.at === commentAt)}
+                  comment={comment}
                   handleCommentChanged={(newComment) => this.handleCommentChanged(newComment, doc)}/>
               </div>
           )}}/>
