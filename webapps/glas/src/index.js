@@ -71,6 +71,9 @@ class EditComment extends Component {
         </div>
         <button type="submit" className="btn btn-primary">Изпрати</button>
         <button className="btn btn-danger" onClick={(e) => this.handleSubmit(e, true)}>Изтрий</button>
+        <Link to={'/d/' + this.props.docId}>
+          <button className="btn btn-secondary">Откажи</button>
+        </Link>
       </form>
     );
   }
@@ -125,6 +128,9 @@ class EditDoc extends Component {
           <textarea className="form-control" name="description" cols={window.COLS} rows={calculateRows(description)} value={description} onChange={this.handleChange}/>
         </div>
         <button type="submit" className="btn btn-primary">Изпрати</button>
+        <Link to={'/d/' + doc._id}>
+          <button className="btn btn-secondary">Откажи</button>
+        </Link>
       </form>
     );
   }
@@ -202,6 +208,50 @@ class DocList extends Component {
           </Link>
         </div>
       </div>
+    );
+  }
+}
+
+class NavBar extends Component {
+  constructor(props) {
+    super(props);
+  }
+
+  render() {
+    const path = this.props.path.map(part => {
+      return part[1] === null ? (
+        <li key="active" className="active breadcrumb-item">
+          {part[0]}
+        </li>) : (
+        <li key={part[1]} className="breadcrumb-item">
+          <Link to={part[1]}>
+            {part[0]}
+          </Link>
+        </li>
+      )});
+
+    return (
+      <nav className="navbar navbar-expand-lg navbar-light bg-light mb-3">
+        <Link to='/'>
+          <span className="navbar-brand">Глас</span>
+        </Link>
+        <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span className="navbar-toggler-icon"></span>
+        </button>
+
+        <div className="collapse navbar-collapse" id="navbarSupportedContent">
+
+          <ol className="navbar-nav mr-auto mb-0 breadcrumb bg-transparent">
+            {path}
+          </ol>
+
+          <form className="form-inline my-2 my-lg-0">
+            <input className="form-control mr-sm-2" type="text" placeholder="Име" aria-label="Име"/>
+            <input className="form-control mr-sm-2" type="text" placeholder="Парола" aria-label="Парола"/>
+            <button className="btn btn-outline-success my-2 my-sm-0" type="submit">Влез</button>
+          </form>
+        </div>
+      </nav>
     );
   }
 }
@@ -325,34 +375,71 @@ class App extends Component {
     const errorMessage = error ?
         <div className="alert alert-danger">{error}</div> 
       : '';
+    const root = ['Предложения', '/'];
 
     return (
       <Router>
         <div className='container' style={{height:"100vh"}}>
           {errorMessage}
           <Route exact path='/' render={ () => (
-            <DocList docs={docs}/>
+            <div>
+              <NavBar path={[[root[0],null]]}/>
+              <DocList docs={docs}/>
+            </div>
           )}/>
-          <Route exact path='/d/:docId' render={ ({match}) => (
-            <DocDetails 
-              doc={docs[match.params.docId]}
-              handleRevisionChanged={(doc, version) => this.handleRevisionChanged(doc, version)}/>
-          )}/>
-          <Route path='/d/:docId/edit' render={ ({match}) => (
-            <EditDoc 
-              doc={docs[match.params.docId]}
-              handleDocChanged={(newDoc) => this.handleDocChanged(newDoc)}/>
-          )}/>
+          <Route exact path='/d/:docId' render={ ({match}) => {
+            const doc = docs[match.params.docId];
+            const path = [
+              root,
+              [doc && doc.title, null],
+            ];
+            return doc && (
+            <div>
+              <NavBar path={path}/>
+              <DocDetails 
+                doc={doc}
+                handleRevisionChanged={(doc, version) => this.handleRevisionChanged(doc, version)}/>
+            </div>
+          )}}/>
+          <Route path='/d/:docId/edit' render={ ({match}) => {
+            const doc = docs[match.params.docId];
+            const path = doc ? [
+              root,
+              [doc.title,'/d/'+match.params.docId],
+              ['Промени', null]
+            ] : [
+              root,
+              ['Ново', null],
+            ];
+
+            return (
+              <div>
+                <NavBar path={path}/>
+                <EditDoc 
+                  doc={doc}
+                  handleDocChanged={(newDoc) => this.handleDocChanged(newDoc)}/>
+              </div>
+            )}}/>
           <Route path='/d/:docId/c/:commentAuthor/:commentAt/edit' render={ ({match}) => {
             const doc = docs[match.params.docId];
+            const commentAuthor = match.params.commentAuthor;
+            const commentAt = match.params.commentAt;
+            const path = [
+              root,
+              [doc && doc.title,'/d/'+match.params.docId],
+              [commentAuthor+'-'+commentAt,null]
+            ];
             return doc && (
-              <EditComment
-                comment={doc.comments && doc.comments.find(c => 
-                  c.author === match.params.commentAuthor 
-                  && c.at === match.params.commentAt)}
-                handleCommentChanged={(newComment) => this.handleCommentChanged(newComment, doc)}/>
+              <div>
+                <NavBar path={path}/>
+                <EditComment
+                  docId={doc._id}
+                  comment={doc.comments && doc.comments.find(c => 
+                    c.author === commentAuthor 
+                    && c.at === commentAt)}
+                  handleCommentChanged={(newComment) => this.handleCommentChanged(newComment, doc)}/>
+              </div>
           )}}/>
-
         </div>
       </Router>
     );
