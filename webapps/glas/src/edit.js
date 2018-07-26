@@ -1,14 +1,14 @@
 import { Link  } from 'react-router-dom';
 import React, { Component } from 'react';
 
-window.COLS = 50;
+const COLS = 50;
 
 function calculateRows(text) {
   var linecount = 0;
   if (!text) {
     return 1;
   }
-  text.split('\n').forEach( l => linecount += Math.ceil(l.length/window.COLS));
+  text.split('\n').forEach( l => linecount += Math.ceil(l.length/COLS));
   return linecount+1;
 }
 
@@ -29,11 +29,11 @@ class EditUser extends Component {
   }
 
   async componentDidMount() {
-    const user = this.props.user && await this.props.db.getUser(this.props.user);
-    console.log(user);
+    const user = this.props.loggedUser && await this.props.db.getUser(this.props.loggedUser);
 
     if (user) {
       this.setState({
+        user: user,
         name: user.name,
         displayName: user.displayName,
         email: user.email 
@@ -52,9 +52,10 @@ class EditUser extends Component {
   }
 
   async handleSubmit(event, toDelete) {
-    event.preventDefault();
+    event && event.preventDefault();
+
     const db = this.props.db;
-    const newUser = this.props.user === null;
+    const user = this.state.user;
     const name = this.state.name;
     const displayName = this.state.displayName;
     const email = this.state.email;
@@ -68,7 +69,23 @@ class EditUser extends Component {
       }
     }
 
-    if (newUser) {
+    if (user) {
+      const response = await db.putUser(user.name, {
+        metadata: {
+          displayName: displayName,
+          email: email
+        }
+      });
+      if (response && response.ok) {
+        window.location.href = '/';
+      }
+      else {
+        this.setState({
+          error: "Грешка при връзката с магаре: " + response
+        });
+      }
+    }
+    else {
       if (name && oldPassword) {
         const response = await db.signUp(name, oldPassword, {
           metadata: {
@@ -76,23 +93,20 @@ class EditUser extends Component {
             email: email
           }
         });
-        console.log(response);
-        if (response.ok) {
+        if (response && response.ok) {
           // TODO login
           window.location.href = '/';
         }
-      }
-    }
-    else {
-      const response = await db.putUser(user.name, {
-        metadata: {
-          displayName: displayName,
-          email: email
+        else {
+          this.setState({
+            error: "Грешка при връзката с магаре: " + response
+          });
         }
-      });
-      console.log(response);
-      if (response.ok) {
-        window.location.href = '/';
+      }
+      else {
+        this.setState({
+          error: "Трябва да предоставиш име и парола"
+        });
       }
     }
   }
@@ -103,9 +117,15 @@ class EditUser extends Component {
     const email = this.state.email;
     const oldPassword = this.state.oldPassword;
     const newPassword = this.state.newPassword;
+    const error = this.state.error && (
+        <div className="alert alert-danger" role="alert">
+          {this.state.error}
+        </div>
+    );
 
     return (
       <form onSubmit={this.handleSubmit}>
+        {error}
         <input type="text" className="form-control" name="name" value={name} placeholder="Име" onChange={this.handleChange}/>
         <input type="text" className="form-control" name="displayName" value={displayName} placeholder="Видимо име" onChange={this.handleChange}/>
         <input type="email" className="form-control" name="email" value={email} placeholder="Електронна поща" onChange={this.handleChange}/>
@@ -167,7 +187,7 @@ class EditComment extends Component {
             <li className="nav-item"><a className="nav-link active">Неформатиран текст</a></li>
             <li className="nav-item"><a className="nav-link" href="#markdown">Форматиран текст</a></li>
           </ul>
-          <textarea className="form-control" name="message" cols={window.COLS} rows={calculateRows(message)} value={message} onChange={this.handleChange}/>
+          <textarea className="form-control" name="message" cols={COLS} rows={calculateRows(message)} value={message} onChange={this.handleChange}/>
         </div>
         <button type="submit" className="btn btn-primary">Изпрати</button>
         <button className="btn btn-danger" onClick={(e) => this.handleSubmit(e, true)}>Изтрий</button>
@@ -225,7 +245,7 @@ class EditDoc extends Component {
             <li className="nav-item"><a className="nav-link active">Неформатиран текст</a></li>
             <li className="nav-item"><a className="nav-link" href="#markdown">Форматиран текст</a></li>
           </ul>
-          <textarea className="form-control" name="description" cols={window.COLS} rows={calculateRows(description)} value={description} onChange={this.handleChange}/>
+          <textarea className="form-control" name="description" cols={COLS} rows={calculateRows(description)} value={description} onChange={this.handleChange}/>
         </div>
         <button type="submit" className="btn btn-primary">Изпрати</button>
         <Link to={doc._id ? ('/d/' + doc._id) : '/'}>

@@ -96,7 +96,7 @@ class NavBar extends Component {
     super(props);
 
     this.state = {
-      user: null
+      userName: null
     };
 
     this.handleLoginRegister = this.handleLoginRegister.bind(this);
@@ -127,7 +127,7 @@ class NavBar extends Component {
       // TODO make a user profile page
       if (response) {
         this.setState({
-          user: response.name
+          userName: response.name
         });
       }
     }
@@ -147,7 +147,7 @@ class NavBar extends Component {
   }
 
   render() {
-    const user = this.state.user || this.props.user;
+    const userName = this.state.userName || this.props.userName;
     const path = this.props.path.map(part => {
       return part[1] === null ? (
         <li key="active" className="active breadcrumb-item">
@@ -175,13 +175,13 @@ class NavBar extends Component {
             {path}
           </ol>
 
-        { !user ? (
+        { !userName ? (
           <form className="form-inline my-2 my-lg-0" onSubmit={this.handleLoginRegister}>
             <input className="form-control mr-sm-2" type="text" name="name" placeholder="Име" aria-label="Име" onChange={this.handleChange}/>
             <input className="form-control mr-sm-2" type="password" name="password" placeholder="Парола" aria-label="Парола" onChange={this.handleChange}/>
             <button className="btn btn-outline-success my-2 my-sm-0" type="submit">Влез/Запиши се</button>
           </form>
-          ) : <Link to="/user">{user}</Link> }
+          ) : <Link to="/user">{userName}</Link> }
         </div>
       </nav>
     );
@@ -235,7 +235,7 @@ class App extends Component {
     if (docs) {
       this.setState({
         docs: docs,
-        user: session.userCtx.name
+        userName: session.userCtx.name
       });
     }
   }
@@ -247,11 +247,11 @@ class App extends Component {
         .then(r => r.uuids[0]);
       newDoc._id = 'vote-' + uuid.substr(24);
     }
-    const user = this.state.user;
-    if (!newDoc.editors || newDoc.editors.indexOf(user) === -1) {
-      newDoc.editors = (newDoc.editors || []).concat([user]);
+    const userName = this.state.userName;
+    if (!newDoc.editors || newDoc.editors.indexOf(userName) === -1) {
+      newDoc.editors = (newDoc.editors || []).concat([userName]);
     }
-    newDoc.author = user;
+    newDoc.author = userName;
     await this.state.db.put(newDoc);
     const docs = await this.getAllDocs();
     this.setState({
@@ -261,10 +261,10 @@ class App extends Component {
   }
 
   async handleCommentChanged(newComment, doc) {
-    const user = this.state.user;
+    const userName = this.state.userName;
     if (! (newComment.at && newComment.author)) {
       newComment.at = new Date().toISOString();
-      newComment.author = user;
+      newComment.author = userName;
     }
     const comments = doc.comments || [];
     var index = comments.findIndex(c => 
@@ -280,7 +280,7 @@ class App extends Component {
       comments[index] = newComment;
     }
     doc.comments = comments;
-    doc.author = user;
+    doc.author = userName;
     await this.state.db.put(doc);
     const docs = await this.getAllDocs();
     this.setState({
@@ -316,7 +316,7 @@ class App extends Component {
 
   render() {
     const docs = this.state.docs;
-    const user = this.state.user;
+    const userName = this.state.userName;
     const db = this.state.db;
 
     const error = this.state.error;
@@ -331,7 +331,7 @@ class App extends Component {
           {errorMessage}
           <Route exact path='/' render={ () => (
             <div>
-              <NavBar path={[[root[0],null]]} user={user} db={db}/>
+              <NavBar path={[[root[0],null]]} userName={userName} db={db}/>
               <DocList docs={docs}/>
             </div>
           )}/>
@@ -343,7 +343,7 @@ class App extends Component {
             ];
             return doc && (
             <div>
-              <NavBar path={path} user={user} db={db}/>
+              <NavBar path={path} userName={userName} db={db}/>
               <DocDetails 
                 doc={doc}
                 handleRevisionChanged={(doc, version) => this.handleRevisionChanged(doc, version)}/>
@@ -362,7 +362,7 @@ class App extends Component {
 
             return (
               <div>
-                <NavBar path={path} user={user} db={db}/>
+                <NavBar path={path} userName={userName} db={db}/>
                 <EditDoc 
                   doc={doc}
                   handleDocChanged={(newDoc) => this.handleDocChanged(newDoc)}/>
@@ -382,7 +382,7 @@ class App extends Component {
             ];
             return doc && (
               <div>
-                <NavBar path={path} user={user} db={db}/>
+                <NavBar path={path} userName={userName} db={db}/>
                 <EditComment
                   docId={doc._id}
                   comment={comment}
@@ -390,7 +390,7 @@ class App extends Component {
               </div>
           )}}/>
           <Route path='/user' render={ () => (
-            <EditUser user={user} db={db}/>  
+            <EditUser loggedUser={userName} db={db}/>  
           )}/>
         </div>
       </Router>
