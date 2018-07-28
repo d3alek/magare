@@ -1,0 +1,82 @@
+- hosts: magareta
+  become: yes
+  tasks:
+    - name: get sda size
+      parted:
+        device: /dev/sda
+        unit: GiB
+      register: sda_info
+
+    - name: check sda partitions match expectations
+      fail:
+        msg: |
+          Expecting /dev/sda to have 0 or 2 partitions, found {{sda_info.partitions | length}} instead. 
+          Backup if necessary, manually clear the partition table and re-run playbook. For example:
+          sudo parted
+          >> rm 1
+          >> q
+          sudo reboot
+
+      when: sda_info.partitions | length not in [0,2]
+
+      #    - name: expect disk to be around 1TB
+      #      fail:
+      #      when: sda_info.disk.size < 900 or sda_info.disk.size > 1100
+      #
+    - name: make sure log2ram is disabled
+      systemd:
+        name: log2ram
+        enabled: false
+      notify: reboot
+
+    - name: make 1GiB logs partition
+      parted:
+        device: /dev/sda
+        number: 1
+        state: present
+        part_end: 1GiB
+      register: partition_result1
+
+    - name: make data partition
+      parted:
+        device: /dev/sda
+        number: 2
+        state: present
+        part_start: 1GiB
+      register: partition_result2
+
+    - name: give disk some time to sync
+      pause:
+        seconds: 10
+      when: partition_result1.changed or partition_result2.changed
+
+    - name: make filesystems on sda1 and sda2
+      filesystem:   
+        fstype: btrfs
+        dev: /dev/{{item}}
+      with_items: [sda1, sda2]
+
+    - name: make mount directory
+      file:
+        path: /mnt/data
+        state: directory
+        owner: couchdb
+        group: couchdb
+
+    # have to run it twice to set the correct permissions
+    - name: mount /dev/sda1 to /var/log on boot
+      blockinfile:
+        marker: "# {mark} /var/log ANSIBLE MANAGED BLOCK"
+        block: "/dev/sda1 /var/log btrfs defaults,nofail,x-systemd.device-timeout=1 0 2"
+        path: /etc/fstab
+      notify: reboot
+    - name: mount /dev/sda2 to /mnt/data on boot
+      blockinfile:
+        marker: "# {mark} /mnt/data ANSIBLE MANAGED BLOCK"
+        block: "/dev/sda2 /mnt/data btrfs defaults,nofail,x-systemd.device-timeout=1 0 2"
+        path: /etc/fstab
+      notify: reboot
+
+  handlers:
+    - name: reboot
+      command: systemctl reboot

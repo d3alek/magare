@@ -1,3 +1,27 @@
+## First steps on new Lime2 eMMC
+
+Do in parallel the two sets of steps - first one deals with software and the second one with networking:
+
+* Download appropriate Armbian version
+* Flash to SD card using Etcher
+* Put SD card in device, connect to internet and power
+* Wait a bit, find device assigned IP (for example with `arp-scan`), connect with ssh and `root:1234`
+* set a root password following prompts and remember it. Don't make account (`ctrl+c` when it asks)
+* `sudo armian-config` > System > Install to eMMC > ext4 filesystem > wait 15 minutes... > accept power off > take SD card off > turn on
+* sudo `armiban-config` > Personal > timezone to Sofia and hostame to `magare#`
+* Make a `magare#.otselo.eu` entry in `/etc/ansible/hosts`
+* `ansible-playbook magare.yaml -l "magare#.otselo.eu" -e @couchdb_variables.yaml --ask-vault-pass --ask-pass`
+* `ansible-playbook magare-sda.yaml -l "magare#.otselo.eu"`
+* Run `ansible-playbook magare-sda.yaml -l "magare#.otselo.eu"` again to fix permissions after system restart
+* `ansible-playbook magare-firewall.yaml -l "magare#.otselo.eu"`
+* `ansible-playbook certbot.yaml -l "magare4.otselo.eu"`
+* `ansible-playbook couchdb.yaml -l "magare#.otselo.eu" -e @couchdb_variables.yaml --ask-vault-pass`
+
+* Make an `A` DNS record for the new magare (`magare#.otselo.eu`)
+* Add a new entry to `couchdb-cluster.yaml`
+* Configure tunneling (through router for example), make sure host is reachable on `magare#.otselo.eu`, ideally Demilitarized Host (all traffic forwarded to it), otherwise ports `80, 443, 4369, 9100-9200`
+* `ansible-playbook couchdb-cluster.yaml -l "magare#.otselo.eu"`
+
 ## Manual Setup
 Make sure user on`magareta` has passwordless sudo access:
 

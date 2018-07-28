@@ -73,11 +73,21 @@
         - couchdb@magare1.otselo.eu
         - couchdb@magare2.otselo.eu
         - couchdb@magare3.otselo.eu
+        - couchdb@magare4.otselo.eu
 
     - name: make webapps database
       when: '"webapps" not in all_dbs.json'
       uri:
         url: '{{couchdb_url}}/webapps?q=1'
+        method: PUT
+        user: "{{ admin_user }}"
+        password: "{{ admin_password }}"
+        force_basic_auth: yes
+
+    - name: make public_users database
+      when: '"public_users" not in all_dbs.json'
+      uri:
+        url: '{{couchdb_url}}/public_users?q=1'
         method: PUT
         user: "{{ admin_user }}"
         password: "{{ admin_password }}"

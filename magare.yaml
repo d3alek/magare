@@ -1,4 +1,4 @@
-- hosts: magare1.otselo.eu
+- hosts: magareta
   become: yes
   tasks:
     - name: make a sudo group
@@ -11,7 +11,7 @@
         dest: /etc/sudoers
         state: present
         regexp: '^%sudo'
-        line: '%sudo ALL=(ALL:ALL) ALL'
+        line: '%sudo ALL = (root) NOPASSWD:ALL'
         validate: 'visudo -cf %s'
 
     - name: make user alek
@@ -20,6 +20,8 @@
         shell: /bin/bash
         groups: sudo
         append: yes
+        password: '{{admin_password}}' # necessary otherwise user is locked and we cannot ssh into it
+        update_password: on_create
 
     - name: make sure alek is authenticated via key
       authorized_key:
@@ -27,11 +29,6 @@
         key: '{{ item }}'
       with_file:
         - id_rsa_magare.pub
-
-    - name: make user couchdb
-      user:
-        name: couchdb
-        home: /opt/couchdb
 
     - name: configure sshd
       template:
@@ -42,71 +39,6 @@
         mode: "0644"
         validate: '/usr/sbin/sshd -T -f %s'
       notify: restart sshd
-
-    - name: get sda size
-      parted:
-        device: /dev/sda
-        unit: GiB
-      register: sda_info
-
-    - name: expect disk to be around 1TB
-      fail:
-      when: sda_info.disk.size < 900 or sda_info.disk.size > 1100
-
-    - name: make sure log2ram is disabled
-      systemd:
-        name: log2ram
-        enabled: false
-      notify: reboot
-
-    - name: make 1GiB logs partition
-      parted:
-        device: /dev/sda
-        number: 1
-        state: present
-        part_end: 1GiB
-      register: partition_result1
-
-    - name: make data partition
-      parted:
-        device: /dev/sda
-        number: 2
-        state: present
-        part_start: 1GiB
-      register: partition_result2
-
-    - name: give disk some time to sync
-      pause:
-        seconds: 10
-      when: partition_result1.changed or partition_result2.changed
-
-    - name: make filesystems on sda1 and sda2
-      filesystem:   
-        fstype: btrfs
-        dev: /dev/{{item}}
-      with_items: [sda1, sda2]
-
-    - name: make mount directory
-      file:
-        path: /mnt/data
-        state: directory
-        owner: couchdb
-        group: couchdb
-
-    # have to run it twice to set the correct permissions
-    - name: mount /dev/sda1 to /var/log on boot
-      blockinfile:
-        marker: "# {mark} /var/log ANSIBLE MANAGED BLOCK"
-        block: "/dev/sda1 /var/log btrfs defaults 0 2"
-        path: /etc/fstab
-      notify: reboot
-    - name: mount /dev/sda2 to /mnt/data on boot
-      blockinfile:
-        marker: "# {mark} /mnt/data ANSIBLE MANAGED BLOCK"
-        block: "/dev/sda2 /mnt/data btrfs defaults 0 2"
-        path: /etc/fstab
-      notify: reboot
-
     - name: install monit
       apt: 
         name: monit
@@ -123,17 +55,14 @@
         daemon_reload: yes
         enabled: yes
         state: started
-
   handlers:
-    - name: reboot
-      command: systemctl reboot
+    - name: restart sshd
+      service: 
+        name: sshd
+        state: restarted
 
     - name: restart monit
       systemd:
         name: monit
         state: restarted
 
-    - name: restart sshd
-      service: 
-        name: sshd
-        state: restarted

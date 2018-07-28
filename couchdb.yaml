@@ -29,6 +29,7 @@
           with_items: "{{ packages }}"
 
         - name: add nodesource nodejs 10 repository
+          warn: False
           shell: |
             curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
 
@@ -81,10 +82,9 @@
             system: yes
             group: 
             home: /opt/couchdb
-            createhome: no
 
         - name: move build to couchdb home
-          command: cp -r "{{ build_dir }}/couchdb/rel/couchdb" /opt/couchdb
+          command: cp -r {{ build_dir }}/couchdb/rel/couchdb /opt/
 
         - name: make couchdb own his home
           command: chown -R couchdb:couchdb /opt/couchdb/
