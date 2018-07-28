@@ -3,10 +3,10 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 import ReactDOM from 'react-dom';
 import PouchDB from 'pouchdb';
-import { markdown } from 'markdown'
-import { BrowserRouter as Router, Link, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Link, NavLink, Route } from 'react-router-dom';
 import { versionControl, blobAsText } from './version-control.js';
 import { EditComment, EditDoc, EditUser } from './edit.js';
+import { FeatureDetails, FeatureList } from './features.js';
 
 import plugin from 'pouchdb-authentication';
 
@@ -14,90 +14,13 @@ PouchDB.plugin(plugin);
 
 window.ENDPOINT = 'https://magare.otselo.eu/';
 window.DB = 'features';
+window.PUBLIC_USERS = 'public_users';
 
-class DocDetails extends Component {
-  render() {
-    const doc = this.props.doc;
-    if (!doc) {
-      return null;
-    }
-    
-    const comments = doc.comments ? doc.comments.map( comment =>
-        <div key={comment.author + ' - ' + comment.at}>
-          <p>{comment.author + ' - ' + comment.at}</p>
-          {comment.message && <span dangerouslySetInnerHTML={{__html: markdown.toHTML(comment.message)}}></span>}
-          <Link to={'/d/' + doc._id + '/c/' + comment.author + '/' + comment.at + '/edit'}>
-            <button type="button" className="btn btn-primary">Промени</button>
-          </Link>
-        </div>
-      ) : '';
-  
-    const myRevision = 'rev-' + doc._rev;
-    const latestRevision = 'rev-' + (doc.latestRev || doc._rev);
-    const versionSelector = (
-        <select value={myRevision} onChange={(event) => this.props.handleRevisionChanged(doc, event.target.value)}>
-          { Object.keys(doc._attachments).concat([latestRevision])
-              .filter(a => a.startsWith('rev'))
-              .map(a => <option value={a} key={a}>{a}</option>)}
-        </select>
-    );
-
-    return (
-      <div className="col-12" key={doc._id}>
-        <h4>{doc.title}</h4>
-        <h6>{doc.editors}</h6>
-        <p>{doc.stage}</p>
-        { doc.description && <span dangerouslySetInnerHTML={{__html: markdown.toHTML(doc.description)}}></span> }
-        <button type="button" className="btn btn-success">За</button>
-        <button type="button" className="btn btn-danger">Против</button>
-        <Link to={'/d/' + doc._id + '/edit'}>
-          <button type="button" className="btn btn-info">Промени</button>
-        </Link>
-        {versionSelector}   
-        <div>
-          <h5>Коментари</h5>
-          <Link to={'/d/' + doc._id + '/c/new/new/edit'}>
-            <button type="button" className="btn btn-success">Добави</button>
-          </Link>
-          {comments}
-        </div>
-      </div>
-    );
-  }
-}
-
-class DocList extends Component {
-  render() {
-    const docs = Object.values(this.props.docs);
-    const summaries = docs.map( doc => {
-      return (
-        <div className="col-12" key={doc._id}>
-          <Link to={'/d/' + doc._id}>
-            <h4>{doc.title}</h4>
-          </Link>
-        </div>
-    )});
-
-    return (
-      <div className="row">
-        {summaries}
-        <div className="col-12">
-          <Link to={'/d/new/edit'}>
-            <button type="button" className="btn btn-success">Ново предложение</button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-}
-
-class NavBar extends Component {
+class Login extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      userName: null
-    };
+    this.state = {};
 
     this.handleLoginRegister = this.handleLoginRegister.bind(this);
     this.handleChange = this.handleChange.bind(this);
@@ -110,26 +33,7 @@ class NavBar extends Component {
     const password = this.state.password;
 
     if (name && password) {
-      const response = await this.props.db.logIn(name, password).catch(err => {
-        if (err) {
-          if (err.name === 'unauthorized' || err.name === 'forbidden') {
-            // name or password incorrect
-            // TODO redirect to a page
-            return null;
-          } else {
-            // other error
-            // TODO redirect to a page
-            return null;
-          }
-        }
-      });
-
-      // TODO make a user profile page
-      if (response) {
-        this.setState({
-          userName: response.name
-        });
-      }
+      await this.props.logIn(name, password);
     }
     else {
       window.location.href = '/user';
@@ -147,7 +51,31 @@ class NavBar extends Component {
   }
 
   render() {
-    const userName = this.state.userName || this.props.userName;
+    const userName = this.props.userName;
+
+    if (userName) {
+      return <div className="navbar-text">Здравей <NavLink to="/user">{userName}</NavLink></div>
+    }
+
+    const short = this.props.short;
+    return (
+      <form className={short && "form-inline" + " my-2 my-lg-0"} onSubmit={this.handleLoginRegister}>
+        <div className="form-group">
+          <label className={short && "sr-only"} htmlFor="name">Име за вход</label>
+          <input className="form-control mr-sm-2" type="text" name="name" id="name" placeholder="Име за вход" aria-label="Име за вход" onChange={this.handleChange}/>
+        </div>
+        <div className="form-group">
+          <label className={short && "sr-only"} htmlFor="password">Парола</label>
+          <input className="form-control mr-sm-2" type="password" id="password" name="password" placeholder="Парола" aria-label="Парола" onChange={this.handleChange}/>
+        </div>
+        <button className="btn btn-outline-success my-2 my-sm-0" type="submit">{short ? "Влез/Запиши се" : "Влез"}</button>
+      </form>
+    );
+  }
+}
+
+class NavBar extends Component {
+  render() {
     const path = this.props.path.map(part => {
       return part[1] === null ? (
         <li key="active" className="active breadcrumb-item">
@@ -160,6 +88,8 @@ class NavBar extends Component {
         </li>
       )});
 
+    const logIn = this.props.logIn;
+
     return (
       <nav className="navbar navbar-expand-lg navbar-light bg-light mb-3">
         <Link to='/'>
@@ -170,20 +100,42 @@ class NavBar extends Component {
         </button>
 
         <div className="collapse navbar-collapse" id="navbarSupportedContent">
-
           <ol className="navbar-nav mr-auto mb-0 breadcrumb bg-transparent">
             {path}
           </ol>
-
-        { !userName ? (
-          <form className="form-inline my-2 my-lg-0" onSubmit={this.handleLoginRegister}>
-            <input className="form-control mr-sm-2" type="text" name="name" placeholder="Име" aria-label="Име" onChange={this.handleChange}/>
-            <input className="form-control mr-sm-2" type="password" name="password" placeholder="Парола" aria-label="Парола" onChange={this.handleChange}/>
-            <button className="btn btn-outline-success my-2 my-sm-0" type="submit">Влез/Запиши се</button>
-          </form>
-          ) : <Link to="/user">{userName}</Link> }
+          {logIn && <Login logIn={logIn} userName={this.props.userName} short={true}/>}
         </div>
       </nav>
+    );
+  }
+}
+
+class UserDetails extends Component {
+  render() {
+    const db = this.props.db;
+    const publicUsers = this.props.publicUsers;
+    const userName = this.props.userName;
+    return userName ? (
+      <div className="row"> 
+        <div className="col-12">
+          <h4>Промени профила или <button className="btn" onClick={() => this.props.logOut()}>Излез</button></h4>
+          <EditUser loggedUser={userName} db={db} publicUsers={publicUsers}/>  
+        </div>
+      </div>
+    ) : (
+      <div className="row"> 
+        <div className="col-md-5">
+          <h4>Съществуващ профил</h4>
+          <Login logIn={this.props.logIn} userName={userName}/>
+        </div>
+        <div className="col-md-2 text-center align-self-center">
+          <h4>или</h4>
+        </div>
+        <div className="col-md-5">
+          <h4>Нов профил</h4>
+          <EditUser loggedUser={userName} db={db} publicUsers={publicUsers}/>  
+        </div>
+      </div>
     );
   }
 }
@@ -191,6 +143,7 @@ class NavBar extends Component {
 class App extends Component {
   constructor(props) {
     super(props);
+    const publicUsers = new PouchDB(window.PUBLIC_USERS);
     const db = versionControl(new PouchDB(window.ENDPOINT + window.DB, {
       fetch(url, opts) { // as per https://github.com/pouchdb-community/pouchdb-authentication/issues/239#issuecomment-403506880
         opts.credentials='include'
@@ -200,8 +153,12 @@ class App extends Component {
 
     this.state = {
       docs: [],
-      db: db
+      db: db,
+      publicUsers: publicUsers
     };
+
+    this.logOut = this.logOut.bind(this);
+    this.logIn = this.logIn.bind(this);
   }
 
   showError(e) {
@@ -228,10 +185,29 @@ class App extends Component {
     return docsMap;
   }
 
+  startPublicUserReplication() {
+    this.state.publicUsers.replicate.from(window.ENDPOINT + window.PUBLIC_USERS, {
+      live: true,
+      retry: true
+    }).on('change', info => {
+      console.log("replication change")
+    }).on('paused', err => {
+      console.log("replication paused")
+    }).on('active', () => {
+      console.log("replication active")
+    }).on('denied', err => {
+      console.log("replication denied")
+    }).on('complete', err => {
+      console.log("replication complete")
+    }).on('error', err => {
+      console.log("replication error")
+    });
+  }
+
   async componentDidMount() {
     const docs = await this.getAllDocs();
     const session = await this.state.db.getSession();
-
+    this.startPublicUserReplication();
     if (docs) {
       this.setState({
         docs: docs,
@@ -314,10 +290,44 @@ class App extends Component {
     });
   }
 
+  async logOut() {
+    await this.state.db.logOut();
+    this.setState({
+      userName: null
+    });
+  }
+
+  async getUserDisplayName(user) {
+    return (await this.state.publicUsers.get(user) || {}).displayName || user;
+  }
+
+  async logIn(name, password) {
+    const response = await this.state.db.logIn(name, password).catch(err => {
+      if (err) {
+        if (err.name === 'unauthorized' || err.name === 'forbidden') {
+          // name or password incorrect
+          // TODO redirect to a page
+          return null;
+        } else {
+          // other error
+          // TODO redirect to a page
+          return null;
+        }
+      }
+    });
+
+    if (response) {
+      this.setState({
+        userName: response.name
+      });
+    }
+  }
+
   render() {
     const docs = this.state.docs;
     const userName = this.state.userName;
     const db = this.state.db;
+    const publicUsers = this.state.publicUsers;
 
     const error = this.state.error;
     const errorMessage = error ?
@@ -331,8 +341,8 @@ class App extends Component {
           {errorMessage}
           <Route exact path='/' render={ () => (
             <div>
-              <NavBar path={[[root[0],null]]} userName={userName} db={db}/>
-              <DocList docs={docs}/>
+              <NavBar path={[[root[0],null]]} userName={userName} logIn={this.logIn}/>
+              <FeatureList docs={docs}/>
             </div>
           )}/>
           <Route exact path='/d/:docId' render={ ({match}) => {
@@ -343,10 +353,13 @@ class App extends Component {
             ];
             return doc && (
             <div>
-              <NavBar path={path} userName={userName} db={db}/>
-              <DocDetails 
+              <NavBar path={path} userName={userName} logIn={this.logIn}/>
+              <FeatureDetails 
                 doc={doc}
-                handleRevisionChanged={(doc, version) => this.handleRevisionChanged(doc, version)}/>
+                publicUsers={publicUsers}
+                handleRevisionChanged={(doc, version) => this.handleRevisionChanged(doc, version)}
+                put={db.put}
+              />
             </div>
           )}}/>
           <Route path='/d/:docId/edit' render={ ({match}) => {
@@ -362,7 +375,7 @@ class App extends Component {
 
             return (
               <div>
-                <NavBar path={path} userName={userName} db={db}/>
+                <NavBar path={path} userName={userName} logIn={this.logIn}/>
                 <EditDoc 
                   doc={doc}
                   handleDocChanged={(newDoc) => this.handleDocChanged(newDoc)}/>
@@ -382,7 +395,7 @@ class App extends Component {
             ];
             return doc && (
               <div>
-                <NavBar path={path} userName={userName} db={db}/>
+                <NavBar path={path} userName={userName} logIn={this.logIn}/>
                 <EditComment
                   docId={doc._id}
                   comment={comment}
@@ -390,7 +403,10 @@ class App extends Component {
               </div>
           )}}/>
           <Route path='/user' render={ () => (
-            <EditUser loggedUser={userName} db={db}/>  
+            <div>
+              <NavBar path={[["Потребител", null]]} userName={userName} logIn={null}/>
+              <UserDetails logIn={this.logIn} db={db} userName={userName} logOut={this.logOut} publicUsers={publicUsers}/>
+            </div>
           )}/>
         </div>
       </Router>

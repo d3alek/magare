@@ -7,6 +7,8 @@
   "license": "MIT",
   "scripts": {
     "test": "mocha-webpack --webpack-config webpack.dev.js test",
+    "test-watch": "mocha-webpack --webpack-config webpack.dev.js --watch test",
+    "test-magare-watch": "mocha-webpack --require isomorphic-fetch --webpack-config webpack.dev.js --watch test-magare",
     "build": "webpack --config webpack.prod.js",
     "start": "webpack-dev-server --open --config webpack.dev.js"
   },
@@ -33,6 +35,7 @@
     "enzyme-adapter-react-16": "^1.1.1",
     "html-webpack-plugin": "^4.0.0-alpha",
     "html-webpack-template": "^6.2.0",
+    "isomorphic-fetch": "^2.2.1",
     "mocha": "^5.2.0",
     "mocha-webpack": "^2.0.0-beta.0",
     "sinon": "^6.1.4",

@@ -17,18 +17,18 @@ class EditUser extends Component {
     super(props);
 
     this.state = {
-      name: null,
-      displayName: null,
-      email: null,
-      oldPassword: null,
-      newPassword: null,
+      name: '',
+      displayName: '',
+      email: '',
+      oldPassword: '',
+      newPassword: '',
     };
 
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleChange = this.handleChange.bind(this);
   }
 
-  async componentDidMount() {
+  async updateUser() {
     const user = this.props.loggedUser && await this.props.db.getUser(this.props.loggedUser);
 
     if (user) {
@@ -41,6 +41,16 @@ class EditUser extends Component {
     }
   }
 
+  async componentDidMount() {
+    await this.updateUser();
+  }
+
+  async componentDidUpdate(prevProps, prevState) {
+    if (prevProps.loggedUser !== this.props.loggedUser) {
+      await this.updateUser();
+    }
+  }
+
   handleChange(event) {
     const target = event.target;
     const value = target.type === 'checkbox' ? target.checked : target.value;
@@ -49,6 +59,13 @@ class EditUser extends Component {
     this.setState({
       [name]: value
     });
+  }
+
+  async updatePublicUser(userName, displayName) {
+    const publicUsers = this.props.publicUsers;
+    const publicUser = await publicUsers.get(userName) || { id: userName };
+    publicUser.displayName = displayName;
+    await publicUsers.put(publicUser);
   }
 
   async handleSubmit(event, toDelete) {
@@ -76,6 +93,7 @@ class EditUser extends Component {
           email: email
         }
       });
+      await this.updatePublicUser(user.name, displayName);
       if (response && response.ok) {
         window.location.href = '/';
       }
@@ -93,6 +111,7 @@ class EditUser extends Component {
             email: email
           }
         });
+        await this.updatePublicUser(name, displayName);
         if (response && response.ok) {
           // TODO login
           window.location.href = '/';
@@ -112,6 +131,7 @@ class EditUser extends Component {
   }
 
   render() {
+    const user = this.state.user;
     const name = this.state.name;
     const displayName = this.state.displayName;
     const email = this.state.email;
@@ -122,15 +142,33 @@ class EditUser extends Component {
           {this.state.error}
         </div>
     );
+    const oldPasswordName = user ? "Стара парола" : "Парола";
 
     return (
       <form onSubmit={this.handleSubmit}>
         {error}
-        <input type="text" className="form-control" name="name" value={name} placeholder="Име" onChange={this.handleChange}/>
-        <input type="text" className="form-control" name="displayName" value={displayName} placeholder="Видимо име" onChange={this.handleChange}/>
-        <input type="email" className="form-control" name="email" value={email} placeholder="Електронна поща" onChange={this.handleChange}/>
-        <input type="password" className="form-control" name="oldPassword" value={oldPassword} placeholder="Стара парола" onChange={this.handleChange}/>
-        <input type="password" className="form-control" name="newPassword" value={newPassword} placeholder="Нова парола" onChange={this.handleChange}/>
+        <div className="form-group">
+          <label htmlFor="userName">Име за вход</label>
+          <input type="text" readOnly={user} className={"form-control" + (user ?"-plaintext":"")} name="name" id="userName" value={name} placeholder="Име за вход" onChange={this.handleChange}/>
+        </div>
+        <div className="form-group">
+          <label  htmlFor="displayName">Име за показ</label>
+          <input type="text" className="form-control" name="displayName" id="displayName" value={displayName} placeholder="Име за показ" onChange={this.handleChange}/>
+        </div>
+        <div className="form-group">
+          <label  htmlFor="email">Електронна поща</label>
+          <input type="email" className="form-control" name="email" id="email" value={email} placeholder="Електронна поща" onChange={this.handleChange}/>
+        </div>
+        <div className="form-group">
+          <label  htmlFor="oldPassword">{oldPasswordName}</label>
+          <input type="password" className="form-control" name="oldPassword" id="oldPassword" value={oldPassword} placeholder={oldPasswordName} onChange={this.handleChange}/>
+        </div>
+        {user && (
+          <div className="form-group">
+            <label  htmlFor="newPassword">Нова парола</label>
+            <input type="password" className="form-control" name="newPassword" id="newPassword" value={newPassword} placeholder="Нова парола" onChange={this.handleChange}/>
+          </div>
+        )}
         <button type="submit" className="btn btn-primary">Изпрати</button>
         <Link to="/">
           <button className="btn btn-secondary">Назад</button>
