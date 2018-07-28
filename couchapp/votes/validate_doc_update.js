@@ -10,17 +10,26 @@ function(newDoc, oldDoc, userCtx, secObj) {
   }
   
   function arraySubtraction(a1, a2) {
-    return a1.filter(function(value) {
+    var result = a1.filter(function(value) {
       return -1 === a2.indexOf(value);
     });
+    if (a1.length > a2.length && result.length !== a1.length - a2.length) {
+      log(result);
+      log(a1);
+      log(a2);
+      throw({forbidden: 'Multiple votes from one user not allowed'});
+    }
+    return result;
   }
 
   var oldDocVotesFor = ((oldDoc && oldDoc.votes) || []).for || [];
   var newDocVotesFor = newDoc.votes.for || [];
   var newVotesFor = arraySubtraction(newDocVotesFor, oldDocVotesFor);
   var removedVotesFor = arraySubtraction(oldDocVotesFor, newDocVotesFor);
+
   var oldDocVotesAgainst = ((oldDoc && oldDoc.votes) || []).against || [];
   var newDocVotesAgainst = newDoc.votes.against || [];
+
   var newVotesAgainst = arraySubtraction(newDocVotesAgainst, oldDocVotesAgainst);
   var removedVotesAgainst = arraySubtraction(oldDocVotesAgainst, newDocVotesAgainst);
   var i;
@@ -32,11 +41,10 @@ function(newDoc, oldDoc, userCtx, secObj) {
   log('removes');
   log(removedVotes);
 
-  if (newVotes.length === 0 && 
-    (oldDocVotesFor.length !== newDocVotesFor.length 
-    || oldDocVotesAgainst.length !== newDocVotesAgainst.length)) {
-    throw({forbidden: 'User already voted'});
+  if (newVotes.length > 0 && removedVotes.length > 0) {
+    throw({forbidden: 'Cannot both remove and add vote in one change'});
   }
+
   if (newVotes.length > 0) {
     if (newVotes.length > 1) {
       throw({forbidden: 'Only one vote per change is allowed'});
@@ -45,20 +53,12 @@ function(newDoc, oldDoc, userCtx, secObj) {
       throw({forbidden: 'User must be the new voter'});
     }
     if (newVotesFor.length > 0) {
-      log("old for");
-      log(oldDocVotesFor);
-      log("old against");
-      log(oldDocVotesAgainst);
-      if (oldDocVotesFor.indexOf(userCtx.name) !== -1) {
+      if (oldDocVotesAgainst.indexOf(userCtx.name) !== -1) {
         throw({forbidden: 'User already voted'});
       }
     }
     else {
-      log("old for");
-      log(oldDocVotesFor);
-      log("old against");
-      log(oldDocVotesAgainst);
-      if (oldDocVotesAgainst.indexOf(userCtx.name) !== -1) {
+      if (oldDocVotesFor.indexOf(userCtx.name) !== -1) {
         throw({forbidden: 'User already voted'});
       }
     }

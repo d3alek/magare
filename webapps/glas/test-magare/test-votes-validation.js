@@ -128,7 +128,7 @@ describe('votes validation', () => {
     expect(response.ok).to.be.true;
   });
 
-  it('removing someone elses vote fails', async () => {
+  it('[will fail] removing someone elses vote fails', async () => {
     const doc = {_id: 'test-doc', votes: {for: ['non-test-user']}};
     // TODO make test-admin user which is a database-only admin
     var response = await db.put(doc);
