@@ -1,0 +1,49 @@
+global
+        log /dev/log    local0
+        log /dev/log    local1 notice
+        maxconn 512
+        ssl-server-verify none
+
+defaults
+        mode http
+        log global
+        monitor-uri /_haproxy_health_check
+        option log-health-checks
+        option httplog
+        balance roundrobin
+        option forwardfor
+        option redispatch
+        retries 4
+        option http-server-close
+        timeout client 150000
+        timeout server 3600000
+        timeout connect 500
+
+        stats enable
+        stats uri /_haproxy_stats
+        # stats auth admin:admin # Uncomment for basic auth
+
+frontend public-in
+        bind :80
+        bind :443 ssl crt /etc/haproxy/certs/{{ domain }}.pem
+        reqadd X-Forwarded-Proto:\ https
+
+        # Letsencrypt auto-renew
+        acl letsencrypt-acl path_beg /.well-known/acme-challenge/
+        use_backend letsencrypt-backend if letsencrypt-acl
+        #\ Letsencrypt auto-renew
+
+        redirect scheme https code 301 if !{ ssl_fc }
+
+        default_backend couchdbs
+
+backend couchdbs
+        option httpchk GET /_up
+        http-check disable-on-404
+
+{% for magare in groups['magareta'] %}
+        server {{hostvars[magare].magare_name}} {{hostvars[magare].inventory_hostname}}:{{hostvars[magare].couchdb_port}} ssl check-ssl check inter 5s
+{% endfor %}
+
+backend letsencrypt-backend
+   server letsencrypt 127.0.0.1:54321

@@ -113,9 +113,9 @@
       apt:
         name: libcap2-bin 
 
-    - name: allow couchdb to access ports < 1024
-      become: yes
-      command: setcap 'cap_net_bind_service=+ep' /opt/couchdb/erts-8.2.1/bin/beam.smp
+        #    - name: allow couchdb to access ports < 1024
+        #      become: yes
+        #      command: setcap 'cap_net_bind_service=+ep' /opt/couchdb/erts-8.2.1/bin/beam.smp
 
     - name: configure SSL
       become: yes
@@ -131,7 +131,7 @@
         - { section: ssl, option: cert_file, value: '{{ ssl_cert_file }}' }
         - { section: ssl, option: key_file, value: '{{ ssl_key_file }}' }
         - { section: ssl, option: cacert_file, value: '{{ ssl_cacert_file }}' }
-        - { section: ssl, option: port, value: '443' }
+        - { section: ssl, option: port, value: '{{ couchdb_port}} ' }
       notify:
         restart couchdb
 
@@ -335,9 +335,4 @@
         name: couchdb
         state: restarted
       ignore_errors: true
-      listen: restart couchdb
-
-    - name: Give couchdb time to get back up
-      pause:
-        seconds: 3
       listen: restart couchdb
