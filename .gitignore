@@ -3,4 +3,5 @@ couchdb_variables.yaml
 design-documents/user_colon_password.txt
 etc-letsencrypt
 id_rsa_magare
-couchapp/venv
+venv
+node_modules

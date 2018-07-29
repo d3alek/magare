@@ -1,7 +1,7 @@
 function(newDoc, oldDoc, userCtx, secObj) { 
   var admin = userCtx.roles.indexOf('_admin') !== -1;
 
-  if (!(newDoc && newDoc.votes)) {
+  if (admin || !(newDoc && newDoc.votes)) {
     return;
   }
 

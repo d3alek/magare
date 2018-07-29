@@ -1,37 +1,39 @@
-import '@babel/polyfill/noConflict';
-import { expect } from 'chai';
-import PouchDB from 'pouchdb';
+const expect = require('chai').expect;
+const util = require('./util.js');
 
-// TODO testing locally
-const SERVER = 'https://magare.otselo.eu/';
-const DATABASE = 'test_features';
+var anonymousDb;
+var db;
+var adminDb;
 
-global.btoa = function (str) {return new Buffer(str).toString('base64');};
+describe('votes', () => {
+  before( async () => {
+    const server = await util.getServer();
+    const validation = "votes";
+    const url = 'http://' + server + validation;
+    anonymousDb = new util.AnonymousDB(url);
+    db = new util.AuthenticatedDB(url);
+    adminDb = new util.AdminDB(url);
 
-const anonymousDb = new PouchDB(SERVER + DATABASE, {
-  skip_setup: true,
-});
+    await util.putValidation(server, validation);
+  });
 
-const db = new PouchDB(SERVER + DATABASE, {
-  skip_setup: true,
-  auth: {
-    username: "test-user",
-    password: "test-password"
-  }
-});
-
-describe('votes validation', () => {
-  afterEach( async () => {
+  beforeEach( async () => {
     const doc = await db.get('test-doc').catch(err => undefined);
     if (doc) {
       await db.remove(doc);
     }
-  })
+  });
+
+  after( async () => {
+    await adminDb.destroy();
+  });
 
   it('design document present', async () => {
     const result = await db.allDocs();
+    expect(result.rows).to.have.length(1);
     expect(result.rows[0].id).to.equal('_design/votes');
   });
+
   it('anonymous not allowed to vote', async () => {
     const doc = {_id: 'test-doc', votes: {for: ['test-user']}};
     const response = await anonymousDb.put(doc).catch( err => {
@@ -128,10 +130,20 @@ describe('votes validation', () => {
     expect(response.ok).to.be.true;
   });
 
-  it('[will fail] removing someone elses vote fails', async () => {
+  it('allow admin to remove votes', async () => {
     const doc = {_id: 'test-doc', votes: {for: ['non-test-user']}};
-    // TODO make test-admin user which is a database-only admin
-    var response = await db.put(doc);
+    var response = await adminDb.put(doc);
+
+    doc._rev = response.rev;
+    doc.votes.for = [];
+    response = await adminDb.put(doc);
+    expect(response.ok).to.be.true;
+  });
+
+
+  it('removing someone elses vote fails', async () => {
+    const doc = {_id: 'test-doc', votes: {for: ['non-test-user']}};
+    var response = await adminDb.put(doc);
 
     doc._rev = response.rev;
     doc.votes.for = [];
