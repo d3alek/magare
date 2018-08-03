@@ -63,7 +63,8 @@ class EditUser extends Component {
 
   async updatePublicUser(userName, displayName) {
     const publicUsers = this.props.publicUsers;
-    const publicUser = await publicUsers.get(userName) || { id: userName };
+    const publicUser = await publicUsers.get(userName).catch((err) => undefined // TODO handle erorr
+    ) || { _id: userName };
     publicUser.displayName = displayName;
     await publicUsers.put(publicUser);
   }

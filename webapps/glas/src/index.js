@@ -7,6 +7,8 @@ import { BrowserRouter as Router, Link, NavLink, Route } from 'react-router-dom'
 import { versionControl, blobAsText } from './version-control.js';
 import { EditComment, EditDoc, EditUser } from './edit.js';
 import { FeatureDetails, FeatureList } from './features.js';
+import { NavBar } from './NavBar.js';
+import { Login } from './Login.js';
 
 import plugin from 'pouchdb-authentication';
 
@@ -16,99 +18,6 @@ window.ENDPOINT = 'https://magare.otselo.eu/';
 window.DB = 'features';
 window.PUBLIC_USERS = 'public_users';
 
-class Login extends Component {
-  constructor(props) {
-    super(props);
-
-    this.state = {};
-
-    this.handleLoginRegister = this.handleLoginRegister.bind(this);
-    this.handleChange = this.handleChange.bind(this);
-  }
-
-  async handleLoginRegister(event) {
-    event.preventDefault();
-
-    const name = this.state.name;
-    const password = this.state.password;
-
-    if (name && password) {
-      await this.props.logIn(name, password);
-    }
-    else {
-      window.location.href = '/user';
-    }
-  }
-
-  handleChange(event) {
-    const target = event.target;
-    const value = target.type === 'checkbox' ? target.checked : target.value;
-    const name = target.name;
-
-    this.setState({
-      [name]: value
-    });
-  }
-
-  render() {
-    const userName = this.props.userName;
-
-    if (userName) {
-      return <div className="navbar-text">Здравей <NavLink to="/user">{userName}</NavLink></div>
-    }
-
-    const short = this.props.short;
-    return (
-      <form className={short && "form-inline" + " my-2 my-lg-0"} onSubmit={this.handleLoginRegister}>
-        <div className="form-group">
-          <label className={short && "sr-only"} htmlFor="name">Име за вход</label>
-          <input className="form-control mr-sm-2" type="text" name="name" id="name" placeholder="Име за вход" aria-label="Име за вход" onChange={this.handleChange}/>
-        </div>
-        <div className="form-group">
-          <label className={short && "sr-only"} htmlFor="password">Парола</label>
-          <input className="form-control mr-sm-2" type="password" id="password" name="password" placeholder="Парола" aria-label="Парола" onChange={this.handleChange}/>
-        </div>
-        <button className="btn btn-outline-success my-2 my-sm-0" type="submit">{short ? "Влез/Запиши се" : "Влез"}</button>
-      </form>
-    );
-  }
-}
-
-class NavBar extends Component {
-  render() {
-    const path = this.props.path.map(part => {
-      return part[1] === null ? (
-        <li key="active" className="active breadcrumb-item">
-          {part[0]}
-        </li>) : (
-        <li key={part[1]} className="breadcrumb-item">
-          <Link to={part[1]}>
-            {part[0]}
-          </Link>
-        </li>
-      )});
-
-    const logIn = this.props.logIn;
-
-    return (
-      <nav className="navbar navbar-expand-lg navbar-light bg-light mb-3">
-        <Link to='/'>
-          <span className="navbar-brand">Глас</span>
-        </Link>
-        <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-          <span className="navbar-toggler-icon"></span>
-        </button>
-
-        <div className="collapse navbar-collapse" id="navbarSupportedContent">
-          <ol className="navbar-nav mr-auto mb-0 breadcrumb bg-transparent">
-            {path}
-          </ol>
-          {logIn && <Login logIn={logIn} userName={this.props.userName} short={true}/>}
-        </div>
-      </nav>
-    );
-  }
-}
 
 class UserDetails extends Component {
   render() {
@@ -126,7 +35,7 @@ class UserDetails extends Component {
       <div className="row"> 
         <div className="col-md-5">
           <h4>Съществуващ профил</h4>
-          <Login logIn={this.props.logIn} userName={userName}/>
+          <Login logIn={this.props.logIn} userName={userName} publicUsers={publicUsers}/>
         </div>
         <div className="col-md-2 text-center align-self-center">
           <h4>или</h4>
@@ -179,14 +88,18 @@ class App extends Component {
 
     const docsMap = {};
     if (docs) {
-      docs.rows.map(r => docsMap[r.id] = r.doc);
+      docs.rows.forEach(r => {
+        if (!r.id.startsWith('_')) {
+          docsMap[r.id] = r.doc;
+        }
+      });
     }
 
     return docsMap;
   }
 
   startPublicUserReplication() {
-    this.state.publicUsers.replicate.from(window.ENDPOINT + window.PUBLIC_USERS, {
+    PouchDB.sync(this.state.publicUsers, window.ENDPOINT + window.PUBLIC_USERS, {
       live: true,
       retry: true
     }).on('change', info => {
@@ -327,23 +240,23 @@ class App extends Component {
     const docs = this.state.docs;
     const userName = this.state.userName;
     const db = this.state.db;
-    const publicUsers = this.state.publicUsers;
 
+    const publicUsers = this.state.publicUsers;
     const error = this.state.error;
     const errorMessage = error ?
-        <div className="alert alert-danger">{error}</div> 
+      <div className="alert alert-danger">{error}</div> 
       : '';
-    const root = ['Предложения', '/'];
+    const root = 'Предложения';
 
     return (
       <Router>
         <div className='container' style={{height:"100vh"}}>
+          <Route path='/' render={ ( {location} ) =>
+            <NavBar location={location} userName={userName} logIn={this.logIn} publicUsers={publicUsers} docs={docs}/>
+          }/>
           {errorMessage}
           <Route exact path='/' render={ () => (
-            <div>
-              <NavBar path={[[root[0],null]]} userName={userName} logIn={this.logIn}/>
-              <FeatureList docs={docs}/>
-            </div>
+            <FeatureList docs={docs}/>
           )}/>
           <Route exact path='/d/:docId' render={ ({match}) => {
             const doc = docs[match.params.docId];
@@ -352,15 +265,13 @@ class App extends Component {
               [doc && doc.title, null],
             ];
             return doc && (
-            <div>
-              <NavBar path={path} userName={userName} logIn={this.logIn}/>
               <FeatureDetails 
                 doc={doc}
                 publicUsers={publicUsers}
+                userName={userName}
                 handleRevisionChanged={(doc, version) => this.handleRevisionChanged(doc, version)}
                 put={db.put}
               />
-            </div>
           )}}/>
           <Route path='/d/:docId/edit' render={ ({match}) => {
             const doc = docs[match.params.docId];
@@ -374,12 +285,9 @@ class App extends Component {
             ];
 
             return (
-              <div>
-                <NavBar path={path} userName={userName} logIn={this.logIn}/>
-                <EditDoc 
-                  doc={doc}
-                  handleDocChanged={(newDoc) => this.handleDocChanged(newDoc)}/>
-              </div>
+              <EditDoc 
+                doc={doc}
+                handleDocChanged={(newDoc) => this.handleDocChanged(newDoc)}/>
             )}}/>
           <Route path='/d/:docId/c/:commentAuthor/:commentAt/edit' render={ ({match}) => {
             const doc = docs[match.params.docId];
@@ -394,20 +302,14 @@ class App extends Component {
               [comment ? (commentAuthor+'-'+commentAt) : 'Нов коментар',null]
             ];
             return doc && (
-              <div>
-                <NavBar path={path} userName={userName} logIn={this.logIn}/>
-                <EditComment
-                  docId={doc._id}
-                  comment={comment}
-                  handleCommentChanged={(newComment) => this.handleCommentChanged(newComment, doc)}/>
-              </div>
+              <EditComment
+                docId={doc._id}
+                comment={comment}
+                handleCommentChanged={(newComment) => this.handleCommentChanged(newComment, doc)}/>
           )}}/>
-          <Route path='/user' render={ () => (
-            <div>
-              <NavBar path={[["Потребител", null]]} userName={userName} logIn={null}/>
+          <Route path='/user' render={ () => 
               <UserDetails logIn={this.logIn} db={db} userName={userName} logOut={this.logOut} publicUsers={publicUsers}/>
-            </div>
-          )}/>
+          }/>
         </div>
       </Router>
     );

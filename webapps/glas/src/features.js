@@ -31,6 +31,7 @@ class FeatureDetails extends Component {
       const prettyComments = await Promise.all(comments.map( async (comment) => {
         const prettyCommentAuthor = await this.props.publicUsers.get(comment.author);
         const prettyComment = Object.assign({}, comment); 
+        prettyComment.user = prettyComment.author;
         prettyComment.author = (prettyCommentAuthor && prettyCommentAuthor.displayName) || comment.author;
         return prettyComment;
       }));
@@ -66,6 +67,7 @@ class FeatureDetails extends Component {
 
     const updatedFeature = Object.assign({}, this.props.doc);
     updatedFeature.votes = votes;
+    updatedFeature.author = userName;
     await this.props.put(updatedFeature);
   }
 
@@ -82,7 +84,7 @@ class FeatureDetails extends Component {
           <p className="author">{comment.author}</p>
           <p className="at">{comment.at}</p>
           {comment.message && <div className="message" dangerouslySetInnerHTML={{__html: markdown.toHTML(comment.message)}}></div>}
-          <Link to={'/d/' + doc._id + '/c/' + comment.author + '/' + comment.at + '/edit'}>
+          <Link to={'/d/' + doc._id + '/c/' + comment.user + '/' + comment.at + '/edit'}>
             <button type="button" className="btn btn-primary">Промени</button>
           </Link>
         </div>

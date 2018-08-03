@@ -19,7 +19,7 @@ const db = {
 };
 
 const publicUsers = {
-  get: sinon.fake(),
+  get: sinon.stub().rejects(),
   put: sinon.fake()
 };
 
