@@ -8,6 +8,9 @@
     ssl_cacert_file: "{{ssl_dir}}/fullchain.pem"
     ssl_cert_file: "{{ssl_dir}}/cert.pem"
     ssl_key_file: "{{ssl_dir}}/privkey.pem"
+    nodejs_version: 10.x
+    nodejs_install_npm_user: root
+
   tasks:
     - name: check couchdb binary
       become: yes
@@ -29,7 +32,6 @@
           with_items: "{{ packages }}"
 
         - name: add nodesource nodejs 10 repository
-          warn: False
           shell: |
             curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
 
@@ -46,6 +48,7 @@
         git:
           repo: https://github.com/apache/couchdb
           dest: "{{ build_dir }}/couchdb"
+          version: 56bd13d0d61c142eeae3a03da26f2f17a5d6ece8
           clone: yes
 
       - name: configure
@@ -132,6 +135,33 @@
         - { section: ssl, option: key_file, value: '{{ ssl_key_file }}' }
         - { section: ssl, option: cacert_file, value: '{{ ssl_cacert_file }}' }
         - { section: ssl, option: port, value: '{{ couchdb_port}} ' }
+      notify:
+        restart couchdb
+
+    - name: configure admin hash for cluster-wide authentication
+      become: yes
+      ini_file:
+        path: /opt/couchdb/etc/local.ini
+        section: '{{item.section}}'
+        option: '{{item.option}}'
+        value: '{{item.value}}'
+        owner: couchdb
+        group: couchdb
+      with_items:
+        - { section: admin, option: '{{admin_user}}', value: '{{admin_password_hash}}' }
+        - { section: couch_httpd_auth, option: secret, value: '{{cookie_secret}}' }
+      notify:
+        restart couchdb
+
+    - name: configure CSP # for Fauxton to work behind HAProxy
+      become: yes
+      ini_file:
+        path: /opt/couchdb/etc/local.ini
+        section: csp
+        option: enable
+        value: false
+        owner: couchdb
+        group: couchdb
       notify:
         restart couchdb
 

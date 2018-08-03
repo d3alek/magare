@@ -4,7 +4,7 @@
     nft_define_host:
       output tcp accepted:
         name: out_tcp_accept
-        value: '{ http, https, hkp, 4369, 9100-9200 }'
+        value: '{ http, https, hkp, 4369, {{couchdb_port}}, 9100-9200 }'
       input tcp accepted:
         name: in_tcp_accept
         value: "{ ssh, http, https, 4369, {{couchdb_port}}, 9100-9200 }"

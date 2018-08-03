@@ -15,14 +15,14 @@ Do in parallel the two sets of steps - first one deals with software and the sec
 * Run `ansible-playbook magare-sda.yaml -l "magare#.otselo.eu"` again to fix permissions after system restart
 * `ansible-playbook magare-firewall.yaml -l "magare#.otselo.eu"`
 * `ansible-playbook certbot.yaml -l "magare#.otselo.eu"`
-* `ansible-playbook magare-haproxy.yaml -l "magare#.otselo.eu"`
 * `ansible-playbook couchdb.yaml -l "magare#.otselo.eu" -e @couchdb_variables.yaml --ask-vault-pass`
+* `ansible-playbook magare-haproxy.yaml -l "magare#.otselo.eu"`
 
 * Make an `A` DNS record for the new magare (`magare#.otselo.eu`)
 * Add a crontab rule for root: `curl -4 "https://magare#.otselo.eu:pass@dyn.dns.he.net/nic/update?hostname=magare#.otselo.eu"`, where `pass` is taken from DNS console
 * Add a new entry to `couchdb-cluster.yaml`
 * Configure tunneling (through router for example), make sure host is reachable on `magare#.otselo.eu`, ideally Demilitarized Host (all traffic forwarded to it), otherwise ports `80, 443, 4369, 9100-9200`
-* `ansible-playbook couchdb-cluster.yaml -l "magare#.otselo.eu"`
+* `ansible-playbook couchdb-cluster.yaml`
 
 ## Manual Setup
 Make sure user on`magareta` has passwordless sudo access:
