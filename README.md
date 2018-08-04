@@ -17,6 +17,7 @@ Do in parallel the two sets of steps - first one deals with software and the sec
 * `ansible-playbook certbot.yaml -l "magare#.otselo.eu"`
 * `ansible-playbook couchdb.yaml -l "magare#.otselo.eu" -e @couchdb_variables.yaml --ask-vault-pass`
 * `ansible-playbook magare-haproxy.yaml -l "magare#.otselo.eu"`
+* `ansible-playbook magare-collectd.yaml -l "magare#.otselo.eu" -e @couchdb_variables.yaml --ask-vault-pass`
 
 * Make an `A` DNS record for the new magare (`magare#.otselo.eu`)
 * Add a crontab rule for root: `curl -4 "https://magare#.otselo.eu:pass@dyn.dns.he.net/nic/update?hostname=magare#.otselo.eu"`, where `pass` is taken from DNS console

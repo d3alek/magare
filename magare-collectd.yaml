@@ -24,7 +24,7 @@
 
     - name: push latest design files
       delegate_to: localhost
-      command: '../venv/bin/couchapp push https://{{admin_user}}:{{admin_password}}@{{inventory_hostname}}/{{magare_name}}-monitor'
+      command: '../venv/bin/couchapp push https://{{admin_user}}:{{admin_password}}@{{inventory_hostname}}:6984/{{magare_name}}-monitor'
       args:
         chdir: couchapp/collectd
 
