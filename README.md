@@ -21,7 +21,7 @@ Do in parallel the two sets of steps - first one deals with software and the sec
 * Make an `A` DNS record for the new magare (`magare#.otselo.eu`)
 * Add a crontab rule for root: `curl -4 "https://magare#.otselo.eu:pass@dyn.dns.he.net/nic/update?hostname=magare#.otselo.eu"`, where `pass` is taken from DNS console
 * Add a new entry to `couchdb-cluster.yaml`
-* Configure tunneling (through router for example), make sure host is reachable on `magare#.otselo.eu`, ideally Demilitarized Host (all traffic forwarded to it), otherwise ports `80, 443, 4369, 9100-9200`
+* Configure tunneling (through router for example), make sure host is reachable on `magare#.otselo.eu`, ideally Demilitarized Host (all traffic forwarded to it), otherwise ports `22, 80, 443, 4369, 6984, 9100-9200`
 * `ansible-playbook couchdb-cluster.yaml`
 
 ## Manual Setup

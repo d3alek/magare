@@ -55,6 +55,7 @@
         fstype: btrfs
         dev: /dev/{{item}}
       with_items: [sda1, sda2]
+      notify: reboot
 
     - name: make mount directory
       file:

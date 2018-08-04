@@ -148,7 +148,7 @@
         owner: couchdb
         group: couchdb
       with_items:
-        - { section: admin, option: '{{admin_user}}', value: '{{admin_password_hash}}' }
+        - { section: admins, option: '{{admin_user}}', value: '{{admin_password_hash}}' }
         - { section: couch_httpd_auth, option: secret, value: '{{cookie_secret}}' }
       notify:
         restart couchdb
