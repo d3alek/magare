@@ -14,7 +14,7 @@ import plugin from 'pouchdb-authentication';
 
 PouchDB.plugin(plugin);
 
-window.ENDPOINT = 'https://magare.otselo.eu/';
+window.ENDPOINT = 'https://magare4.otselo.eu/';
 window.DB = 'features';
 window.PUBLIC_USERS = 'public_users';
 

@@ -179,4 +179,56 @@ describe('votes', () => {
     });
     expect(response).to.be.undefined;
   });
+
+  it('editing someone elses comment fails', async () => {
+    const doc = {_id: 'test-doc', comments: [{message: 'test comment', at: '2018-08-12T15:58:49.802Z', author: 'non-test-user'}]};
+    var response = await adminDb.put(doc);
+
+    doc._rev = response.rev;
+    doc.comments[0].message = 'edited comment';
+    response = await db.put(doc).catch( err => {
+      console.log(err.message);
+      expect(err.error).to.equal("forbidden");
+    });
+    expect(response).to.be.undefined;
+  });
+
+  it('removing someone elses comment fails', async () => {
+    const doc = {_id: 'test-doc', comments: [{message: 'test comment', at: '2018-08-12T15:58:49.802Z', author: 'non-test-user'}]};
+    var response = await adminDb.put(doc);
+
+    doc._rev = response.rev;
+    doc.comments = [];
+    response = await db.put(doc).catch( err => {
+      console.log(err.message);
+      expect(err.error).to.equal("forbidden");
+    });
+    expect(response).to.be.undefined;
+  });
+
+  it('posting comment as someone else fails', async () => {
+    const doc = {_id: 'test-doc', comments: [{message: 'test comment', at: '2018-08-12T15:58:49.802Z', author: 'non-test-user'}]};
+    const response = await db.put(doc).catch( err => {
+      console.log(err.message);
+      expect(err.error).to.equal("forbidden");
+    });
+    expect(response).to.be.undefined;
+  });
+
+  it('posting valid comment works', async () => {
+    const doc = {_id: 'test-doc', comments: [{message: 'test comment', at: '2018-08-12T15:58:49.802Z', author: 'test-user'}]};
+    const response = await db.put(doc);
+    expect(response.ok).to.be.true;
+  });
+
+  it('posting two valid comments works', async () => {
+    const doc = {_id: 'test-doc', comments: [{message: 'test comment', at: '2018-08-12T15:58:49.802Z', author: 'test-user'}]};
+    var response = await adminDb.put(doc);
+
+    doc._rev = response.rev;
+    doc.comments.push({message: 'test comment 2', at: '2018-08-12T15:58:49.802Z', author: 'test-user'});
+
+    response = await db.put(doc);
+    expect(response.ok).to.be.true;
+  });
 });
