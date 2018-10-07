@@ -1,0 +1,15 @@
+- name: make the database
+  when: 'item not in databases.json'
+  uri:
+    url: 'https://{{magare_hostname}}/{{item}}'
+    method: PUT
+    user: "{{ admin_user }}"
+    password: "{{ admin_password }}"
+    force_basic_auth: yes
+    status_code: 201
+  with_items: "{{validator.tables}}"
+
+- name: push latest design files
+  delegate_to: localhost
+  command: 'validators/couchapps/venv/bin/couchapp push validators/couchapps/{{validator.name}} https://{{admin_user}}:{{admin_password}}@{{magare_hostname}}:6984/{{item}}'
+  with_items: "{{validator.tables}}"

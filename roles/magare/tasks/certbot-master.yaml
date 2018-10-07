@@ -1,0 +1,29 @@
+- include_role:
+    name: geerlingguy.certbot
+  vars:
+    certbot_auto_renew: yes
+    certbot_auto_renew_user: alek
+    certbot_auto_renew_hour: 1
+    certbot_auto_renew_minute: 33
+    certbot_create_if_missing: no
+    certbot_create_method: standalone
+    certbot_admin_email: akodzhabashev@gmail.com
+    certbot_create_standalone_stop_services: []
+    certbot_certs:
+      - domains: '{{domains}}'
+    certbot_install_from_source: yes
+    certbot_dir: /opt/certbot
+  become: yes
+
+- name: ensure auto-renewal happens at the correct port
+  lineinfile:  
+    path: /etc/letsencrypt/renewal/{{ domain }}.conf
+    regexp: '^http01_port'
+    line: http01_port = 54321
+
+- name: Pull certificate
+  synchronize: 
+    mode: pull
+    src: /etc/letsencrypt/
+    dest: etc-letsencrypt
+

@@ -5,7 +5,7 @@ import { shallow, configure } from 'enzyme';
 import sinon from 'sinon';
 import Adapter from 'enzyme-adapter-react-16';
 
-import { EditUser } from '../src/edit.js';
+import { EditUser, EditFeature } from '../src/edit.js';
 import { tick } from './util.js';
 
 configure({ adapter: new Adapter() })
@@ -110,3 +110,18 @@ describe('<EditUser />', () => {
   //
   // TODO test that if new password is given, tries to authenticate with old password first, and then updates password
 });
+
+describe('<EditFeature />', () => {
+  it('renders 1 input, 1 textarea, 1 select', async () => {
+    const wrapper = shallow(<EditFeature/>);
+
+    await tick();
+
+    wrapper.update();
+
+    expect(wrapper.find('input')).to.have.length(1);
+    expect(wrapper.find('textarea')).to.have.length(1);
+    expect(wrapper.find('select')).to.have.length(1);
+  });
+});
+

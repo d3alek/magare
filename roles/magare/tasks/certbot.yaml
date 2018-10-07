@@ -1,0 +1,24 @@
+- name: Ensure certificate directory exists
+  become: yes
+  when: magare_name != "magare1"
+  file:
+    path: /etc/letsencrypt/
+    state: directory
+    owner: root
+    group: root
+
+- name: Push certificate
+  when: magare_name != "magare1"
+  become: yes
+  synchronize: 
+    src: etc-letsencrypt/
+    dest: /etc/letsencrypt/
+
+- name: Make magare own the letsencrypt directory
+  become: yes
+  file:
+    path: /etc/letsencrypt
+    owner: couchdb
+    group: couchdb
+    recurse: yes
+    state: directory

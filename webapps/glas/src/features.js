@@ -129,9 +129,25 @@ class FeatureDetails extends Component {
   }
 }
 
+const FeatureStates = {
+  'vote': 'Предложения',
+  'do': 'Разработка',
+  'eval': 'Оценяване',
+  'complete': 'Завършени',
+}
+
+function getFeatureState(doc) {
+  if (!doc._id) {
+    return null;
+  }
+
+  const stateId = doc._id.split('-')[0];
+
+  return {'id': stateId, 'name': FeatureStates[stateId]};
+}
+
 class FeatureList extends Component {
-  render() {
-    const docs = Object.values(this.props.docs);
+  toSummaries(title, docs) {
     const summaries = docs.map( doc => {
       return (
         <div className="col-12" key={doc._id}>
@@ -142,7 +158,22 @@ class FeatureList extends Component {
     )});
 
     return (
-      <div className="row">
+      <div className="row" key={title}>
+        <h4>{title}</h4>
+        {summaries}
+      </div>
+    )
+  }
+  render() {
+    const docs = Object.values(this.props.docs);
+    var summaries = []
+    for (var id in FeatureStates) {
+      const featuresInState = docs.filter(d => getFeatureState(d).id === id);
+      summaries.push(this.toSummaries(FeatureStates[id], featuresInState));
+    }
+
+    return (
+      <div>
         {summaries}
         <div className="col-12">
           <Link to={'/d/new/edit'}>
@@ -155,4 +186,4 @@ class FeatureList extends Component {
 }
 
 
-export { FeatureDetails, FeatureList };
+export { FeatureDetails, FeatureList, FeatureStates, getFeatureState };

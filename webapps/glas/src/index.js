@@ -5,8 +5,8 @@ import ReactDOM from 'react-dom';
 import PouchDB from 'pouchdb';
 import { BrowserRouter as Router, Link, NavLink, Route } from 'react-router-dom';
 import { versionControl, blobAsText } from './version-control.js';
-import { EditComment, EditDoc, EditUser } from './edit.js';
-import { FeatureDetails, FeatureList } from './features.js';
+import { EditComment, EditFeature, EditUser } from './edit.js';
+import { FeatureDetails, FeatureList, getFeatureState } from './features.js';
 import { NavBar } from './NavBar.js';
 import { Login } from './Login.js';
 
@@ -14,10 +14,10 @@ import plugin from 'pouchdb-authentication';
 
 PouchDB.plugin(plugin);
 
-window.ENDPOINT = 'https://magare4.otselo.eu/';
+//window.ENDPOINT = 'https://magare.otselo.eu/';
+window.ENDPOINT = 'http://172.17.0.2:5984/';
 window.DB = 'features';
 window.PUBLIC_USERS = 'public_users';
-
 
 class UserDetails extends Component {
   render() {
@@ -134,7 +134,13 @@ class App extends Component {
       const uuid = await fetch(window.ENDPOINT + '_uuids')
         .then(r => r.json())
         .then(r => r.uuids[0]);
-      newDoc._id = 'vote-' + uuid.substr(24);
+      newDoc._id = newDoc.state + '-' + uuid.substr(24);
+    }
+
+    const stateChanged = newDoc.state !== getFeatureState(newDoc).id;
+    if (stateChanged) {
+      newDoc._id = newDoc.state + '-' + newDoc._id.split('-')[1];
+      newDoc._attachments = {};
     }
     const userName = this.state.userName;
     if (!newDoc.editors || newDoc.editors.indexOf(userName) === -1) {
@@ -285,7 +291,7 @@ class App extends Component {
             ];
 
             return (
-              <EditDoc 
+              <EditFeature 
                 doc={doc}
                 handleDocChanged={(newDoc) => this.handleDocChanged(newDoc)}/>
             )}}/>

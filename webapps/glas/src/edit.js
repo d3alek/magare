@@ -1,5 +1,6 @@
 import { Link  } from 'react-router-dom';
 import React, { Component } from 'react';
+import { FeatureStates, getFeatureState } from './features.js';
 
 const COLS = 50;
 
@@ -238,7 +239,7 @@ class EditComment extends Component {
   }
 }
 
-class EditDoc extends Component {
+class EditFeature extends Component {
   constructor(props) {
     super(props);
 
@@ -264,6 +265,7 @@ class EditDoc extends Component {
   async handleSubmit(event) {
     event.preventDefault();
     const newDoc = this.props.doc || {};
+    newDoc.state = this.state.docState || newDoc.state || 'vote';
     newDoc.title = this.state.title || newDoc.title;
     newDoc.description = this.state.description || newDoc.description;
     const id = await this.props.handleDocChanged(newDoc);
@@ -276,15 +278,22 @@ class EditDoc extends Component {
     const description = this.state.description || doc.description;
     // TODO show MD formatted text
     
+    const featureState = getFeatureState(doc);
+    const docState = this.state.docState || (featureState && featureState.id) || ''; 
+    const states = Object.keys(FeatureStates).map( key => <option key={key} value={key}>{FeatureStates[key]}</option>);
     return (
       <form onSubmit={this.handleSubmit}>
         <input className="form-control" type="text" name="title" value={title} onChange={this.handleChange}/>
+        <select className="form-control" name="docState" value={docState} onChange={this.handleChange}>
+          {states}
+        </select>
         <div className="form-group">
           <ul className="nav nav-tabs">
             <li className="nav-item"><a className="nav-link active">Неформатиран текст</a></li>
             <li className="nav-item"><a className="nav-link" href="#markdown">Форматиран текст</a></li>
           </ul>
           <textarea className="form-control" name="description" cols={COLS} rows={calculateRows(description)} value={description} onChange={this.handleChange}/>
+
         </div>
         <button type="submit" className="btn btn-primary">Изпрати</button>
         <Link to={doc._id ? ('/d/' + doc._id) : '/'}>
@@ -296,4 +305,4 @@ class EditDoc extends Component {
 }
 
 
-export { EditComment, EditDoc, EditUser };
+export { EditComment, EditFeature, EditUser };

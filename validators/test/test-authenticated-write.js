@@ -16,10 +16,14 @@ describe('authenticated write', () => {
 
     await util.putValidation(server, validation);
   });
+
   beforeEach( async () => {
     const doc = await db.get('test-doc').catch(err => undefined);
     if (doc) {
-      await db.remove(doc);
+      doc.author = 'test-admin';
+      doc.editors = ['test-admin'];
+      doc._deleted = true;
+      await adminDb.put(doc);
     }
   })
   after( async () => {
@@ -42,9 +46,37 @@ describe('authenticated write', () => {
   });
 
   it('authenticated allowed to create', async () => {
-    const doc = {_id: 'test-doc', author: 'test-user'};
+    const doc = {_id: 'test-doc', author: 'test-user', editors: ['test-user']};
     const response = await db.put(doc);
     expect(response.ok).to.be.true;
   });
+
+  it('document author not user fails', async () => {
+    const doc = {_id: 'test-doc', author: 'non-test-user'};
+    const response = await db.put(doc).catch( err => {
+      console.log(err.message);
+      expect(err.error).to.equal("forbidden");
+    });
+    expect(response).to.be.undefined;
+  });
+
+  it('document author not part of editors fails', async () => {
+    const doc = {_id: 'test-doc', author: 'test-user'};
+    const response = await db.put(doc).catch( err => {
+      console.log(err.message);
+      expect(err.error).to.equal("forbidden");
+    });
+    expect(response).to.be.undefined;
+  });
+
+  it('null in editors fails', async () => {
+    const doc = {_id: 'test-doc', author: 'test-user', editors: ['test-user', null]};
+    const response = await db.put(doc).catch( err => {
+      console.log(err.message);
+      expect(err.error).to.equal("forbidden");
+    });
+    expect(response).to.be.undefined;
+  });
+
 });
 

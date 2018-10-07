@@ -1,0 +1,34 @@
+- import_tasks: magare.yaml
+  become: yes
+- import_tasks: magare-sda.yaml
+  become: yes
+# TODO wait for systems to reboot, then repeat last command
+- import_tasks: magare-sda.yaml
+  become: yes
+- name: setup nftables
+  include_role: 
+    name: ipr-cnrs.nftables
+  vars:
+    nft_define_host:
+      output tcp accepted:
+        name: out_tcp_accept
+        value: '{ http, https, hkp, 4369, {{couchdb_port}}, 9100-9200 }'
+      input tcp accepted:
+        name: in_tcp_accept
+        value: "{ ssh, http, https, 4369, {{couchdb_port}}, 9100-9200 }"
+  become: yes
+
+- import_tasks: certbot-master.yaml
+  when: magare_name == "magare1"
+
+- import_tasks: certbot.yaml
+
+- import_tasks: magare-haproxy.yaml
+  become: yes
+  vars:
+    - domain: magare.otselo.eu
+
+- import_tasks: magare-collectd.yaml
+  vars:
+    - couchdb_system_monitor_dir: /opt/couchdb-system-monitor
+    - couchdb_url: "http://127.0.0.1:5984"

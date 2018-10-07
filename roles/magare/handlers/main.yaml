@@ -1,0 +1,24 @@
+- name: restart sshd
+  service: 
+    name: sshd
+    state: restarted
+
+- name: restart monit
+  systemd:
+    name: monit
+    state: restarted
+
+- name: reboot
+  command: systemctl reboot
+
+- name: restart haproxy
+  systemd:
+    name: haproxy
+    state: restarted
+
+- name: restart collectd
+  become: yes
+  systemd:
+    name: collectd
+    state: restarted
+

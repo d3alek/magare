@@ -1,0 +1,8 @@
+- name: Restart couchdb service
+  become: yes
+  become_method: sudo
+  systemd:
+    name: couchdb
+    state: restarted
+  ignore_errors: true
+  listen: restart couchdb

@@ -1,12 +1,17 @@
 function(newDoc, oldDoc, userCtx, secObj) { 
   var admin = userCtx.roles.indexOf('_admin') !== -1;
+  var userName = userCtx.name;
 
-  if (!userCtx.name) {
+  if (!userName) {
     throw({forbidden: 'Anonymous not allowed to edit documents.'});
   }
 
-  if (!newDoc.author || newDoc.author !== userCtx.name) {
+  if (!newDoc.author || newDoc.author !== userName) {
     throw({forbidden: 'Document author must be user.'});
+  }
+
+  if (!newDoc.editors || newDoc.editors.indexOf(userName) == -1 || newDoc.editors.indexOf(null) !== -1) {
+    throw({forbidden: 'User must be in document editors.'});
   }
 
   if (typeof oldDoc === 'undefined' || oldDoc === null) {

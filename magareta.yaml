@@ -1,0 +1,4 @@
+- hosts: magareta
+  roles:
+    - magare
+    - couchdb
