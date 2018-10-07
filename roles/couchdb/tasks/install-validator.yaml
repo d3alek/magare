@@ -1,6 +1,7 @@
 - name: make the database
   when: 'item not in databases.json'
-  uri:
+  local_action:
+    module: uri
     url: 'https://{{magare_hostname}}/{{item}}'
     method: PUT
     user: "{{ admin_user }}"
@@ -10,6 +11,5 @@
   with_items: "{{validator.tables}}"
 
 - name: push latest design files
-  delegate_to: localhost
-  command: 'validators/couchapps/venv/bin/couchapp push validators/couchapps/{{validator.name}} https://{{admin_user}}:{{admin_password}}@{{magare_hostname}}:6984/{{item}}'
+  local_action: 'command validators/couchapps/venv/bin/couchapp push validators/couchapps/{{validator.name}} https://{{admin_user}}:{{admin_password}}@{{magare_hostname}}:6984/{{item}}'
   with_items: "{{validator.tables}}"

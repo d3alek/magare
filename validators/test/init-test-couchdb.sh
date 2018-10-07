@@ -12,6 +12,15 @@ ANOTHER_USER_PASSWORD=another-user-password
 ALREADY_RUNNING=$(docker ps -f "name=$CONTAINER_NAME" -q)
 
 if [ -z "$ALREADY_RUNNING" ]; then
+
+  ALREADY_CREATED=$(docker ps -a -f "name=$CONTAINER_NAME" -q)
+
+  if [ -n "$ALREADY_CREATED" ]; then
+    echo "couchdb named $CONTAINER_NAME already exists, removing it first"
+    docker rm $CONTAINER_NAME
+  fi
+
+  echo "Starting a new couchdb named $CONTAINER_NAME"
   docker run -e COUCHDB_USER=$ADMIN_USER -e COUCHDB_PASSWORD=$ADMIN_PASSWORD -d --name $CONTAINER_NAME couchdb
 
   sleep 10
@@ -27,7 +36,6 @@ if [ -z "$ALREADY_RUNNING" ]; then
   curl -X PUT $TEST_COUCHDB_ADDR/_users/org.couchdb.user:$TEST_USER -d "{\"name\": \"$TEST_USER\", \"password\": \"$TEST_USER_PASSWORD\", \"roles\": [], \"type\": \"user\"}"
 
   curl -X PUT $TEST_COUCHDB_ADDR/_users/org.couchdb.user:$ANOTHER_USER -d "{\"name\": \"$ANOTHER_USER\", \"password\": \"$ANOTHER_USER_PASSWORD\", \"roles\": [], \"type\": \"user\"}"
-
 fi
 
 

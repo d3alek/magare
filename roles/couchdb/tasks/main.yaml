@@ -17,11 +17,10 @@
     couchdb_url: "http://127.0.0.1:5984"
     couchdb_nodes_url: "http://127.0.0.1:5986"
 
-- local_action:
-  - import_tasks: couchdb-validators.yaml
-    vars:
-      magare_hostname: magare.otselo.eu
-      validators:
-          - { name: authenticated-write, tables: [ features ]}
-          - { name: version-control, tables: [ features ]}
-          - { name: votes, tables: [ features ]}
+- import_tasks: couchdb-validators.yaml
+  vars:
+    magare_hostname: magare.otselo.eu
+    validators:
+      - { name: authenticated-write, tables: [ features ]}
+      - { name: version-control, tables: [ features ]}
+      - { name: votes, tables: [ features ]}

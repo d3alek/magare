@@ -1,6 +1,7 @@
 # TODO if databases contains databases not defined here, explode with error
 - name: get databases
-  uri:
+  local_action:
+    module: uri
     url: 'https://{{magare_hostname}}/_all_dbs'
     return_content: yes
   register: databases
