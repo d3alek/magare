@@ -1,0 +1,45 @@
+- name: get public endpoint database details
+  uri: 
+    url: 'http://{{public_hostname}}/{{item}}'
+    user: "{{ admin_user }}"
+    password: "{{ admin_password }}"
+    force_basic_auth: yes
+    return_content: yes
+  retries: 3
+  until: db_details is succeeded
+  delay: 3
+  register: db_details
+
+- name: get admin endpoint database info 
+  when: db_details.json.cluster.q == 1 or item == '_replicator' or item == '_users' or item == '_global_changes'
+  uri:
+    url: 'http://{{admin_hostname}}/_dbs/{{item}}'
+    user: "{{ admin_user }}"
+    password: "{{ admin_password }}"
+    force_basic_auth: yes
+    return_content: yes
+  register: db_info
+
+- name: give node all shards
+  when: 'db_info is not skipped and ("couchdb@" + inventory_hostname) not in db_info.json.by_node'
+  local_action: 
+    module: command
+    args: 
+      argv:
+        - python
+        - roles/couchdb/files/give_node_all_shards.py
+        - '{{inventory_hostname}}'
+        - '{{db_info.json | to_json}}'
+  register: updated_db_info
+
+- name: update admin endpoint database info
+  when: updated_db_info is not skipped
+  uri:
+    url: 'http://{{admin_hostname}}/_dbs/{{item}}'
+    user: "{{ admin_user }}"
+    password: "{{ admin_password }}"
+    force_basic_auth: yes
+    method: PUT
+    body: '{{updated_db_info.stdout | from_json}}'
+    status_code: 201
+    body_format: json

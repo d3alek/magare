@@ -1,0 +1,11 @@
+- name: get databases
+  uri:
+    url: 'http://localhost:5984/_all_dbs'
+    return_content: yes
+  register: databases
+- name: for each database
+  with_items: '{{databases.json}}'
+  include_tasks: update-replica-1-db-infos.yaml
+  vars:
+    public_hostname: 'localhost:5984'
+    admin_hostname: 'localhost:5986'

@@ -1,65 +1,66 @@
-- name: check a magare monitor database exists
-  uri:
-    url: '{{couchdb_url}}/_all_dbs'
-    user: "{{ admin_user }}"
-    password: "{{ admin_password }}"
-    force_basic_auth: yes
-    return_content: yes
-  register: databases
-
-- name: make a magare monitor database
-  when: '(magare_name+"-monitor") not in databases.json'
-  uri:
-    url: '{{couchdb_url}}/{{magare_name}}-monitor?q=1'
-    method: PUT
-    user: "{{ admin_user }}"
-    password: "{{ admin_password }}"
-    force_basic_auth: yes
-    status_code: 201
-
-- name: push latest design files
-  delegate_to: localhost
-  command: '../venv/bin/couchapp push https://{{admin_user}}:{{admin_password}}@{{inventory_hostname}}:6984/{{magare_name}}-monitor'
-  args:
-    chdir: couchapp/collectd
-
-- name: install collectd and needed optional dependencies
-  become: yes
-  apt:
-    name: "{{item}}"
-  with_items: [collectd, libyajl2]
-
-- name: disable rrdtool collectd module
-  become: yes
-  lineinfile: 
-    path: /etc/collectd/collectd.conf
-    regexp: '^LoadPlugin rrdtool'
-    line: '#LoadPlugin rrdtool'
-  notify: restart collectd
-
-- name: enable couchdb statistics collection
-  become: yes
-  template:
-    src: collectd_couchdb.conf.j2
-    dest: /etc/collectd/collectd.conf.d/couchdb.conf
-  notify: restart collectd
-
-- name: create a couchdb-system-monitor directory
-  become: yes
-  file:
-    path: "{{couchdb_system_monitor_dir}}"
-    state: directory
-- name: push the update executable
-  become: yes
-  template:
-    src: configure_collectd_write_http.sh.j2
-    dest: "{{couchdb_system_monitor_dir}}/configure_collectd_write_http.sh"
-    mode: u+x
-    validate: /bin/bash %s 
-
-- name: write a cron task which runs the update script daily at midnight
+# - name: check a magare monitor database exists
+#   uri:
+#     url: '{{couchdb_url}}/_all_dbs'
+#     user: "{{ admin_user }}"
+#     password: "{{ admin_password }}"
+#     force_basic_auth: yes
+#     return_content: yes
+#   register: databases
+# 
+# - name: make a magare monitor database
+#   when: '(magare_name+"-monitor") not in databases.json'
+#   uri:
+#     url: '{{couchdb_url}}/{{magare_name}}-monitor?q=1'
+#     method: PUT
+#     user: "{{ admin_user }}"
+#     password: "{{ admin_password }}"
+#     force_basic_auth: yes
+#     status_code: 201
+# 
+# - name: push latest design files
+#   delegate_to: localhost
+#   command: '../venv/bin/couchapp push https://{{admin_user}}:{{admin_password}}@{{inventory_hostname}}:6984/{{magare_name}}-monitor'
+#   args:
+#     chdir: couchapp/collectd
+# 
+# - name: install collectd and needed optional dependencies
+#   become: yes
+#   apt:
+#     name: "{{item}}"
+#   with_items: [collectd, libyajl2]
+# 
+# - name: disable rrdtool collectd module
+#   become: yes
+#   lineinfile: 
+#     path: /etc/collectd/collectd.conf
+#     regexp: '^LoadPlugin rrdtool'
+#     line: '#LoadPlugin rrdtool'
+#   notify: restart collectd
+# 
+# - name: enable couchdb statistics collection
+#   become: yes
+#   template:
+#     src: collectd_couchdb.conf.j2
+#     dest: /etc/collectd/collectd.conf.d/couchdb.conf
+#   notify: restart collectd
+# 
+# - name: create a couchdb-system-monitor directory
+#   become: yes
+#   file:
+#     path: "{{couchdb_system_monitor_dir}}"
+#     state: directory
+# - name: push the update executable
+#   become: yes
+#   template:
+#     src: configure_collectd_write_http.sh.j2
+#     dest: "{{couchdb_system_monitor_dir}}/configure_collectd_write_http.sh"
+#     mode: u+x
+#     validate: /bin/bash %s 
+# 
+- name: remove the cron task which runs the update script daily at midnight
   become: yes
   cron:
     name: update collectd.write_http config every hour
     minute: 0
     job: /bin/bash {{couchdb_system_monitor_dir}}/configure_collectd_write_http.sh
+    state: absent

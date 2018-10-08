@@ -24,3 +24,8 @@
       - { name: authenticated-write, tables: [ features ]}
       - { name: version-control, tables: [ features ]}
       - { name: votes, tables: [ features ]}
+
+- import_tasks: couchdb-everyone-gets-replica-1.yaml
+  tags:
+    - cluster_maintenance
+

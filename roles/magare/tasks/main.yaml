@@ -32,3 +32,5 @@
   vars:
     - couchdb_system_monitor_dir: /opt/couchdb-system-monitor
     - couchdb_url: "http://127.0.0.1:5984"
+  tags:
+    - collectd
