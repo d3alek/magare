@@ -9,4 +9,4 @@ cd /etc/letsencrypt/live/{{ domain }}
 cat fullchain.pem privkey.pem > /etc/haproxy/certs/{{ domain }}.pem
 
 # reload haproxy
-service haproxy reload
+systemctl restart haproxy

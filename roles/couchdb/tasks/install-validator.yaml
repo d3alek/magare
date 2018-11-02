@@ -7,7 +7,7 @@
     user: "{{ admin_user }}"
     password: "{{ admin_password }}"
     force_basic_auth: yes
-    status_code: 201
+    status_code: 202
   with_items: "{{validator.tables}}"
 
 - name: push latest design files

@@ -21,11 +21,13 @@
         force_basic_auth: yes
         status_code: 201
 
-    - name: add magare2 to cluster
+    #TODO for this to work the firewall on magare1 and magare4 must be turned off
+    #sudo systemctl stop nftables
+    - name: add magare4 to cluster
       uri:
         url: '{{ couchdb_url }}/_cluster_setup'
         method: POST
-        body: {"action": "add_node", "host":'magare2.otselo.eu', "port": "5984", "username": "{{admin_user}}", "password":"{{admin_password}}"}
+        body: {"action": "add_node", "host":'magare4.otselo.eu', "port": "5984", "username": "{{admin_user}}", "password":"{{admin_password}}"}
         body_format: json
         user: "{{ admin_user }}"
         password: "{{ admin_password }}"
@@ -78,6 +80,7 @@
     user: "{{ admin_user }}"
     password: "{{ admin_password }}"
     force_basic_auth: yes
+    status_code: 202
 
 - name: make public_users database
   when: '"public_users" not in all_dbs.json'
@@ -87,4 +90,5 @@
     user: "{{ admin_user }}"
     password: "{{ admin_password }}"
     force_basic_auth: yes
+    status_code: 202
 

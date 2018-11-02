@@ -10,14 +10,19 @@
     ssl_key_file: "{{ssl_dir}}/privkey.pem"
     nodejs_version: 10.x
     nodejs_install_npm_user: root
+  tags:
+    - couchdb-install 
 
 - import_tasks: couchdb-cluster.yaml
   when: magare_name == 'magare1'
   vars:
     couchdb_url: "http://127.0.0.1:5984"
     couchdb_nodes_url: "http://127.0.0.1:5986"
+  tags:
+    - cluster
 
 - import_tasks: couchdb-validators.yaml
+  when: magare_name == 'magare1'
   vars:
     magare_hostname: magare.otselo.eu
     validators:

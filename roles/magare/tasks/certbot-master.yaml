@@ -1,6 +1,7 @@
 - include_role:
     name: geerlingguy.certbot
   vars:
+    ansible_become: yes
     certbot_auto_renew: yes
     certbot_auto_renew_user: alek
     certbot_auto_renew_hour: 1
@@ -13,11 +14,10 @@
       - domains: '{{domains}}'
     certbot_install_from_source: yes
     certbot_dir: /opt/certbot
-  become: yes
 
 - name: ensure auto-renewal happens at the correct port
   lineinfile:  
-    path: /etc/letsencrypt/renewal/{{ domain }}.conf
+    path: /etc/letsencrypt/renewal/magare.otselo.eu.conf
     regexp: '^http01_port'
     line: http01_port = 54321
 
