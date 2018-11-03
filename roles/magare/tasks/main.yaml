@@ -5,8 +5,9 @@
 # TODO wait for systems to reboot, then repeat last command
 - import_tasks: magare-sda.yaml
   become: yes
+
 - name: setup nftables
-  include_role: 
+  import_role: 
     name: ipr-cnrs.nftables
   vars:
     ansible_become: yes
@@ -17,6 +18,15 @@
       input tcp accepted:
         name: in_tcp_accept
         value: "{ ssh, http, https, 4369, {{couchdb_port}}, 9100-9200 }"
+      input udp accepted:
+        name: in_udp_accept
+        value: "{ 1194 }"
+    nft_set_host:
+      in_udp_accept:
+        - type inet_service; flags interval;
+        - elements = $in_udp_accept
+  tags:
+    - firewall
 
 - import_tasks: certbot-master.yaml
   when: magare_name == "magare1"

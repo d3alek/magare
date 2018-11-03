@@ -1,0 +1,23 @@
+# as per https://github.com/Stouts/Stouts.openvpn/issues/86
+- name: openssl config symlink
+  become: yes
+  file:
+    src: "/etc/openvpn/easy-rsa/openssl-1.0.0.cnf"
+    dest: "/etc/openvpn/easy-rsa/openssl.cnf"
+    state: link
+
+- name: setup OpenVPN
+  include_role: 
+    name: Stouts.openvpn
+  vars:
+    ansible_become: yes
+    openvpn_tls_auth: yes
+    openvpn_use_pam: no
+    openvpn_unified_client_profiles: yes
+    openvpn_key_country: BG
+    openvpn_key_province: BG
+    openvpn_key_city: Varna
+    openvpn_key_org: OtSelo
+    openvpn_key_email: admin@otselo.eu
+    openvpn_clients: [clients]
+    openvpn_host: vpn.otselo.eu
