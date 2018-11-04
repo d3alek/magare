@@ -1,0 +1,56 @@
+- import_role: 
+    name: ipr-cnrs.nftables
+  vars:
+    ansible_become: yes
+    nft_define_host:
+      output tcp accepted:
+        name: out_tcp_accept
+        value: '{ http, https, hkp, 4369, {{couchdb_port}}, 9100-9200 }'
+      input tcp accepted:
+        name: in_tcp_accept
+        value: "{ ssh, http, https, 4369, {{couchdb_port}}, 9100-9200 }"
+      input udp accepted:
+        name: in_udp_accept
+        value: "{ openvpn }"
+    nft_set_host:
+      in_udp_accept:
+        - type inet_service; flags interval;
+        - elements = $in_udp_accept
+
+    nft_main_conf_path: "/etc/nftables_part1.conf" 
+    nft_service_unit_content: "templates/nftables.service.j2" 
+    nft_service_manage: no
+
+- name: enable ipv4 ip forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: 1
+    state: present
+
+- name: add nftables part 2
+  template:
+    src: 'templates/nftables_part2.conf'
+    dest: '/etc/nftables_part2.conf'
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+    backup: yes
+
+- name: assemble nftables config from the two parts
+  assemble:
+    regexp: "nftables_part.*"
+    src: '/etc'
+    dest: '/etc/nftables.conf'
+  notify: ['Restart nftables service']
+
+- name: install Debian systemd service unit
+  template:
+    src: 'templates/nftables.service.j2'
+    dest: '/lib/systemd/system/nftables.service'
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+  register: nftables__register_systemd_service
+  notify: ['Restart nftables service']
+
+

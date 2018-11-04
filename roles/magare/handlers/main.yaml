@@ -22,3 +22,10 @@
     name: collectd
     state: restarted
 
+- name: Restart nftables service
+  become: yes
+  systemd:
+    daemon_reload: '{{ nftables__register_systemd_service.changed | default(False) }}'
+    state: restarted
+    name: nftables
+    enabled: yes 

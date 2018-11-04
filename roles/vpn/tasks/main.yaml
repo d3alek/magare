@@ -21,3 +21,7 @@
     openvpn_key_email: admin@otselo.eu
     openvpn_clients: [clients]
     openvpn_host: vpn.otselo.eu
+    openvpn_server_options:
+      - duplicate-cn
+      - 'push "route 192.168.1.0 255.255.255.0"'
+      - 'push "redirect-gateway def1"'
