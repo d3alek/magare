@@ -89,12 +89,18 @@
     dest: /etc/systemd/system/graphite.service
   notify: restart graphite
 
-- name: install collectd
+- name: install collectd and couchdb plugin dependency
   apt:
-    name: collectd
+    name: [collectd, libyajl2]
 
 - name: enable collectd graphite plugin
   template:
     src: roles/magare/files/collectd-graphite.conf.j2
     dest: /etc/collectd/collectd.conf.d/graphite.conf
+  notify: restart collectd
+
+- name: enable collectd couchdb plugin
+  template:
+    src: roles/magare/files/collectd-couchdb.conf.j2
+    dest: /etc/collectd/collectd.conf.d/couchdb.conf
   notify: restart collectd
