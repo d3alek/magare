@@ -52,5 +52,3 @@
     mode: '0644'
   register: nftables__register_systemd_service
   notify: ['Restart nftables service']
-
-

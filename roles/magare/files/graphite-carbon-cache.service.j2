@@ -1,0 +1,12 @@
+[Unit]
+Description=graphite carbon cache
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/graphite/bin/carbon-cache.py --syslog --nodaemon start
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+

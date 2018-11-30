@@ -1,0 +1,11 @@
+[uwsgi]
+processes = 2
+http = 127.0.0.1:8080
+master = true
+gid = root
+uid = root
+chdir = /opt/graphite/conf
+module = wsgi:application
+plugin = python
+static-map = /graphite/static=/opt/graphite/webapp/content
+manage-script-name = true

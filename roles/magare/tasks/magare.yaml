@@ -36,6 +36,22 @@
     mode: "0644"
     validate: '/usr/sbin/sshd -T -f %s'
   notify: restart sshd
+
+- name: change hostname
+  block:
+    - name: set hostname
+      hostname: 
+        name: '{{magare_name}}'
+      notify: Restart machine
+
+    - name: modify /etc/hosts
+      become: yes
+      lineinfile:
+        path: /etc/hosts
+        regexp: '^127.0.0.1'
+        line: '127.0.0.1 localhost {{magare_name}} {{ansible_host}} {{inventory_hostname}}'
+      notify: Restart machine
+
 - name: install monit
   apt: 
     name: monit

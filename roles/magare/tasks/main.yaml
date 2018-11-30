@@ -1,7 +1,9 @@
 - import_tasks: magare.yaml
   become: yes
+
 - import_tasks: magare-sda.yaml
   become: yes
+
 # TODO wait for systems to reboot, then repeat last command
 - import_tasks: magare-sda.yaml
   become: yes
@@ -15,13 +17,22 @@
 - import_tasks: certbot-master.yaml
   when: magare_name == "magare1"
   become: yes
+  tags:
+    - certbot-master
 
 - import_tasks: certbot.yaml
+  tags:
+    - certbot-slave
 
-- import_tasks: magare-haproxy.yaml
+- import_tasks: haproxy.yaml
   become: yes
-  vars:
-    - domain: magare.otselo.eu
+  tags:
+    - proxy
+
+- import_tasks: monitor.yaml
+  become: yes
+  tags:
+    - monitor
 
 - import_tasks: magare-collectd.yaml
   vars:

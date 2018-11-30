@@ -3,4 +3,6 @@ admin_password: "{{vault_admin_password}}"
 cookie: "{{vault_cookie}}"
 admin_password_hash: "{{vault_admin_password_hash}}"
 cookie_secret: "{{vault_cookie_secret}}"
-domains: [magare.otselo.eu]
+domain: magare.otselo.eu
+graphite_secret_key: "{{vault_graphite_secret_key}}"
+graphite_url_prefix: "{{vault_graphite_url_prefix}}"

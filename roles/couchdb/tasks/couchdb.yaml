@@ -1,6 +1,5 @@
 - name: check couchdb binary
   become: yes
-  become_method: sudo 
   stat:
     path: "{{ couchdb_home }}/bin/couchdb"
   register: sym
@@ -8,22 +7,20 @@
 - name: install couchdb
   when: sym.stat.islnk is not defined
   block:
-  - name: as sudo
+  - name: install dependencies from apt
     become: yes
-    become_method: sudo
-    block:
-    - name: install dependencies from apt
-      apt:
-        name: "{{ item }}"
-      with_items: "{{ packages }}"
+    apt:
+      name: [build-essential, pkg-config, erlang, erlang-reltool, libicu-dev, libmozjs185-dev, libcurl4-openssl-dev, python-sphinx, python-sphinx-rtd-theme]
 
-    - name: add nodesource nodejs 10 repository
-      shell: |
-        curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
+  - name: add nodesource nodejs 10 repository
+    become: yes
+    shell: |
+      curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
 
-    - name: install nodejs
-      apt:
-        name: nodejs
+  - name: install nodejs
+    become: yes
+    apt:
+      name: nodejs
 
   - name: create build directory
     file: 
@@ -34,7 +31,7 @@
     git:
       repo: https://github.com/apache/couchdb
       dest: "{{ build_dir }}/couchdb"
-      version: 56bd13d0d61c142eeae3a03da26f2f17a5d6ece8
+      version: 2.2.0
       clone: yes
 
   - name: configure
@@ -63,15 +60,6 @@
     become: yes
     become_method: sudo
     block:
-    - name: add couchdb user
-      user:
-        name: couchdb
-        comment: "CouchDB Administrator"
-        shell: /bin/bash
-        system: yes
-        group: 
-        home: /opt/couchdb
-
     - name: move build to couchdb home
       command: cp -r {{ build_dir }}/couchdb/rel/couchdb /opt/
 
@@ -90,7 +78,7 @@
 - name: fix couchdb instance name
   become: yes
   template:
-    src: vm.args.j2
+    src: roles/couchdb/files/vm.args.j2
     dest: /opt/couchdb/etc/vm.args
     owner: couchdb
     group: couchdb
@@ -192,6 +180,18 @@
   with_items:
     - database_dir
     - view_index_dir
+  notify:
+    restart couchdb
+
+- name: set vendor
+  become: yes
+  ini_file:
+    path: /opt/couchdb/etc/local.ini
+    section: vendor
+    option: name
+    value: 'OtSelo ({{magare_name}})'
+    owner: couchdb
+    group: couchdb
   notify:
     restart couchdb
 

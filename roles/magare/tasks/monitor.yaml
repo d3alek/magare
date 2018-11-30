@@ -1,0 +1,100 @@
+- name: install graphite dependencies
+  apt:
+    name:
+      - python-pip
+      - python-setuptools
+      - python-dev
+      - libcairo2-dev
+      - libffi-dev
+      - build-essential
+
+- name: install whisper, carbon and graphite-web
+  pip:
+    name: 
+      - https://github.com/graphite-project/whisper/tarball/master
+      - https://github.com/graphite-project/carbon/tarball/master
+      - https://github.com/graphite-project/graphite-web/tarball/master
+    extra_args: '--no-binary=:all:'
+  environment:
+    PYTHONPATH: "/opt/graphite/lib/:/opt/graphite/webapp/"
+
+- name: copy example wsgi.py
+  copy:
+    src: /opt/graphite/conf/graphite.wsgi.example
+    dest: /opt/graphite/conf/wsgi.py
+    remote_src: yes
+  notify: restart uwsgi
+
+- name: install uwsgi
+  apt:
+    name:
+      - uwsgi
+      - uwsgi-plugin-python
+
+- name: add graphite uwsgi app
+  template:
+    src: roles/magare/files/graphite.ini.j2
+    dest: /etc/uwsgi/apps-available/graphite.ini 
+  notify: restart uwsgi
+
+- name: enable graphite uwsgi app
+  file:
+    src: /etc/uwsgi/apps-available/graphite.ini
+    dest: /etc/uwsgi/apps-enabled/graphite.ini
+    state: link
+  notify: restart uwsgi
+
+- name: apply django migrations
+  command: django-admin.py migrate --settings=graphite.settings --run-syncdb
+  environment:
+    PYTHONPATH: /opt/graphite/webapp
+  changed_when: no
+
+- name: enable graphite example configuration
+  command: cp local_settings.py.example local_settings.py
+  args:
+    chdir: /opt/graphite/webapp/graphite
+    creates: local_settings.py
+  notify: restart uwsgi
+
+- name: configure graphite local settings
+  lineinfile:
+    regexp: '^#?{{item.key}}'
+    line: '{{item.key}} = "{{item.value}}"'
+    path: /opt/graphite/webapp/graphite/local_settings.py
+  with_items:
+    - {key: SECRET_KEY, value: '{{graphite_secret_key}}'}
+    - {key: URL_PREFIX, value: '{{graphite_url_prefix}}'}
+  no_log: yes
+  notify: restart uwsgi
+
+- name: enable carbon example configuration
+  command: cp {{item}}.conf.example {{item}}.conf
+  args:
+    chdir: /opt/graphite/conf
+    creates: '{{item}}.conf'
+  with_items: [carbon, storage-schemas]
+  notify: restart graphite
+
+- name: change carbon graphite url
+  lineinfile:
+    regexp: '^(# )?GRAPHITE_URL'
+    line: GRAPHITE_URL = http://127.0.0.1:8080
+    path: /opt/graphite/conf/carbon.conf
+  notify: restart graphite
+
+- name: push graphite service
+  template:
+    src: roles/magare/files/graphite-carbon-cache.service.j2
+    dest: /etc/systemd/system/graphite.service
+  notify: restart graphite
+
+- name: install collectd
+  apt:
+    name: collectd
+
+- name: enable collectd graphite plugin
+  template:
+    src: roles/magare/files/collectd-graphite.conf.j2
+    dest: /etc/collectd/collectd.conf.d/graphite.conf
+  notify: restart collectd

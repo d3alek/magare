@@ -20,11 +20,13 @@
   #      fail:
   #      when: sda_info.disk.size < 900 or sda_info.disk.size > 1100
   #
-- name: make sure log2ram is disabled
-  systemd:
-    name: log2ram
-    enabled: false
-  notify: reboot
+
+  # TODO logging has changed in latest armbian releases, service is now called armbian-ramlog, I'll give it a second chance
+  #- name: make sure log2ram is disabled
+  #  systemd:
+  #    name: log2ram
+  #    enabled: false
+  #  notify: reboot
 
 - name: make 1GiB logs partition
   parted:
@@ -54,6 +56,15 @@
   with_items: [sda1, sda2]
   notify: reboot
 
+- name: add couchdb user
+  user:
+    name: couchdb
+    comment: "CouchDB Administrator"
+    shell: /bin/bash
+    system: yes
+    group: 
+    home: /opt/couchdb
+
 - name: make mount directory
   file:
     path: /mnt/data
@@ -61,12 +72,15 @@
     owner: couchdb
     group: couchdb
 
-# have to run it twice to set the correct permissions
+# have to run the below it twice to set the correct permissions
+
 - name: mount /dev/sda1 to /var/log on boot
   blockinfile:
     marker: "# {mark} /var/log ANSIBLE MANAGED BLOCK"
     block: "/dev/sda1 /var/log btrfs defaults,nofail,x-systemd.device-timeout=1 0 2"
     path: /etc/fstab
+    state: absent #TODO giving armbian-ramlog service a chance
+
   notify: reboot
 - name: mount /dev/sda2 to /mnt/data on boot
   blockinfile:

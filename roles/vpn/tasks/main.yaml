@@ -5,6 +5,7 @@
     src: "/etc/openvpn/easy-rsa/openssl-1.0.0.cnf"
     dest: "/etc/openvpn/easy-rsa/openssl.cnf"
     state: link
+  ignore_errors: yes # may need to repeat
 
 - name: setup OpenVPN
   include_role: 

@@ -25,7 +25,29 @@
 - name: Restart nftables service
   become: yes
   systemd:
-    daemon_reload: '{{ nftables__register_systemd_service.changed | default(False) }}'
+    daemon_reload: yes
     state: restarted
     name: nftables
     enabled: yes 
+
+- name: Restart machine
+  become: yes
+  reboot:
+
+- name: restart graphite
+  become: yes
+  systemd:
+    daemon_reload: yes
+    state: restarted
+    name: graphite
+    enabled: yes 
+
+- name: restart uwsgi
+  become: yes
+  systemd:
+    state: restarted
+    name: uwsgi
+    enabled: yes 
+
+
+    

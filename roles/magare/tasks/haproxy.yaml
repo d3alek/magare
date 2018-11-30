@@ -9,6 +9,7 @@
 
 - name: combine letsencrypt fullchain and privkey
   shell: cat /etc/letsencrypt/live/{{ domain }}/fullchain.pem /etc/letsencrypt/live/{{ domain }}/privkey.pem > /etc/haproxy/certs/{{ domain }}.pem
+  changed_when: no
 
 - name: fix permissions
   file:
@@ -19,7 +20,7 @@
 
 - name: configure haproxy
   template:
-    src: templates/haproxy.cfg.j2
+    src: roles/magare/files/haproxy.cfg.j2
     dest: /etc/haproxy/haproxy.cfg
     validate: sudo haproxy -c -f %s
   notify: restart haproxy
@@ -31,7 +32,7 @@
 
 - name: add letsencrypt post-renewal hook
   template:
-    src: templates/haproxy-cert.sh.j2
+    src: roles/magare/files/haproxy-cert.sh.j2
     dest: /etc/letsencrypt/renewal-hooks/post/haproxy-cert.sh
     owner: couchdb
     group: couchdb
