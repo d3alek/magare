@@ -1,0 +1,16 @@
+{
+  "name": "magare-idiot-test",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "dependencies": {
+    "chai": "^4.1.2",
+    "pouchdb": "^7.0.0",
+    "mocha": "^5.2.0"
+  },
+  "scripts": {
+    "test": "mocha test-*.js"
+  },
+  "author": "",
+  "license": "ISC"
+}

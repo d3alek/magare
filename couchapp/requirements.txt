@@ -1,8 +1,0 @@
-argh==0.26.2
--e git+http://github.com/couchapp/couchapp.git@f7d484a28c72a546c89a1ed103cb0f974589a1e5#egg=Couchapp
-http-parser==0.8.3
-pathtools==0.1.2
-PyYAML==3.12
-restkit==4.2.2
-socketpool==0.5.3
-watchdog==0.6.0
