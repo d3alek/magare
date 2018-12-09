@@ -5,51 +5,54 @@ function (doc) {
     var reportedType = typeof reportedConfig;
 
     if (reportedType === 'undefined') {
-      emit(path, desired);
-      return;
+      return [[path, desired]];
     }
     if (desiredType !== reportedType) {
-      throw "types differ at path " + path + ": desired " + desiredType + " reported " + reportedType;
-      return; 
+      throw Error("types differ at path " + path + ": desired " + desiredType + " reported " + reportedType);
     }
 
     if (desiredType === 'number' 
       || desiredType === 'string') {
       if (desiredConfig === reportedConfig) {
-        return; // no differences
+        return []; // no differences
       }
       else {
-        emit(path, desiredConfig);
-        return;
+        return [[path, desiredConfig]];
       }
     }
 
     if (desiredType !== 'object') {
-      throw "expected desired " + desiredConfig + " to be of type object, got " + desiredType + " instead";
-      return;
+      throw Error("expected desired " + desiredConfig + " to be of type object, got " + desiredType + " instead");
     }
 
     var desired, reported;
-
+    var differences = [];
+    
     if (isArray(desiredConfig)) {
       for (i = 0; i < desiredConfig.length; ++i) {
         desired = desiredConfig[i];
         reported = reportedConfig[i];
-        emitDifferences(path.concat(i), desired, reported);
+        differences = differences.concat(emitDifferences(path.concat(i), desired, reported));
       }
 
-      return;
+      return differences;
     }
 
     // both desiredConfig and reportedConfig (assumed) are objects 
     for (key in desiredConfig) {
       desired = desiredConfig[key];
       reported = reportedConfig[key];
-      emitDifferences(path.concat(key), desired, reported);
+      differences = differences.concat(emitDifferences(path.concat(key), desired, reported));
     }
+
+    return differences;
   }
 
   var reportedConfig = doc.reported.state.config;
   var desiredConfig = doc.desired.config;
-  emitDifferences([], desiredConfig, reportedConfig);
+
+  var differences = emitDifferences([], desiredConfig, reportedConfig);
+
+  emit([doc.thing, doc.timestamp], differences);
+  return differences;
 }

@@ -37,3 +37,8 @@ exports.AdminDB = PouchDB.defaults({
     password: "test-admin-password"
   }
 });
+
+exports.throwMessage = (err) => {
+  throw Error('ERROR: ' + err.message);
+};
+
