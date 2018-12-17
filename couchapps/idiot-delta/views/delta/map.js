@@ -1,23 +1,34 @@
 function (doc) {
-  function emitDifferences(path, desiredConfig, reportedConfig) {
-    // we assume that desiredConfig is always defined
+  function isEmpty(obj) {
+    for(var prop in obj) {
+        if(obj.hasOwnProperty(prop))
+            return false;
+    }
+
+    return true;
+  }
+  function getDifferences(desiredConfig, reportedConfig) {
+
     var desiredType = typeof desiredConfig;
     var reportedType = typeof reportedConfig;
 
+    if (desiredType === 'undefined') {
+      return false;
+    }
     if (reportedType === 'undefined') {
-      return [[path, desired]];
+      return desiredConfig;
     }
     if (desiredType !== reportedType) {
-      throw Error("types differ at path " + path + ": desired " + desiredType + " reported " + reportedType);
+      throw Error("types differ between " + JSON.stringify(desiredConfig) + " and " + JSON.stringify(reportedConfig) + ": desired " + desiredType + " reported " + reportedType);
     }
 
     if (desiredType === 'number' 
       || desiredType === 'string') {
       if (desiredConfig === reportedConfig) {
-        return []; // no differences
+        return false; // no differences
       }
       else {
-        return [[path, desiredConfig]];
+        return desiredConfig;
       }
     }
 
@@ -26,33 +37,51 @@ function (doc) {
     }
 
     var desired, reported;
-    var differences = [];
+    var differences;
     
     if (isArray(desiredConfig)) {
       for (i = 0; i < desiredConfig.length; ++i) {
         desired = desiredConfig[i];
         reported = reportedConfig[i];
-        differences = differences.concat(emitDifferences(path.concat(i), desired, reported));
+        // if anything in the array differs, put the whole new array in delta
+        differences = getDifferences(desired, reported);
+        if (differences) {
+          return desiredConfig;
+        }
       }
 
-      return differences;
+      return false;
     }
 
-    // both desiredConfig and reportedConfig (assumed) are objects 
-    for (key in desiredConfig) {
+    var differences;
+    var differencesObject = {};
+    for (var key in desiredConfig) {
       desired = desiredConfig[key];
       reported = reportedConfig[key];
-      differences = differences.concat(emitDifferences(path.concat(key), desired, reported));
+      differences = getDifferences(desired, reported);
+      if (differences) {
+        differencesObject[key] = differences;
+      }
+    }
+    
+    if (!isEmpty(differencesObject)) {
+      return differencesObject;
     }
 
-    return differences;
+    return false;
+  }
+
+  if (!('reported' in doc)) {
+    return;
   }
 
   var reportedConfig = doc.reported.state.config;
-  var desiredConfig = doc.desired.config;
+  var reportedTimestamp = doc.reported.timestamp;
+  var desiredConfig = doc.desired;
 
-  var differences = emitDifferences([], desiredConfig, reportedConfig);
+  var differences = getDifferences(desiredConfig, reportedConfig);
 
-  emit([doc.thing, doc.timestamp], differences);
-  return differences;
+  if (differences) {
+    emit([doc.thing, reportedTimestamp], differences);
+  }
 }

@@ -21,7 +21,7 @@ if [ -z "$ALREADY_RUNNING" ]; then
   fi
 
   echo "Starting a new couchdb named $CONTAINER_NAME"
-  docker run -e COUCHDB_USER=$ADMIN_USER -e COUCHDB_PASSWORD=$ADMIN_PASSWORD -d --name $CONTAINER_NAME couchdb
+  docker run -e COUCHDB_USER=$ADMIN_USER -e COUCHDB_PASSWORD=$ADMIN_PASSWORD -d --name $CONTAINER_NAME -p 5984:5984 couchdb
 
   sleep 10
 
