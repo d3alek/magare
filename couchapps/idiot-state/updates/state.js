@@ -1,4 +1,29 @@
-function (doc) {
+function(doc, req) {
+  if (!doc) {
+    log('No matching document,  refusing report');
+    return [null, 'KO'];
+  }
+
+  var body;
+  try {
+    body = JSON.parse(req.body);
+  }
+  catch(e) {
+    log('Error: Could not parse JSON from body: ' + body);
+    return [null, 'KO'];
+  }
+
+  var timestamp = new Date().toISOString();
+
+  function updatedDoc() {
+    if (!('reported' in doc)) {
+      doc.reported = {};
+    }
+    doc.reported.state = body
+    doc.reported.timestamp = timestamp
+    return doc
+  }
+
   function isEmpty(obj) {
     for(var prop in obj) {
         if(obj.hasOwnProperty(prop))
@@ -7,6 +32,7 @@ function (doc) {
 
     return true;
   }
+
   function getDifferences(desiredConfig, reportedConfig) {
 
     var desiredType = typeof desiredConfig;
@@ -19,7 +45,8 @@ function (doc) {
       return desiredConfig;
     }
     if (desiredType !== reportedType) {
-      throw Error("types differ between " + JSON.stringify(desiredConfig) + " and " + JSON.stringify(reportedConfig) + ": desired " + desiredType + " reported " + reportedType);
+      log("types differ between " + JSON.stringify(desiredConfig) + " and " + JSON.stringify(reportedConfig) + ": desired " + desiredType + " reported " + reportedType);
+      return false;
     }
 
     if (desiredType === 'number' 
@@ -45,7 +72,7 @@ function (doc) {
         reported = reportedConfig[i];
         // if anything in the array differs, put the whole new array in delta
         differences = getDifferences(desired, reported);
-        if (differences) {
+        if (differences !== false) {
           return desiredConfig;
         }
       }
@@ -59,7 +86,7 @@ function (doc) {
       desired = desiredConfig[key];
       reported = reportedConfig[key];
       differences = getDifferences(desired, reported);
-      if (differences) {
+      if (differences !== false) {
         differencesObject[key] = differences;
       }
     }
@@ -71,17 +98,20 @@ function (doc) {
     return false;
   }
 
-  if (!('reported' in doc)) {
-    return;
+  function buildResponse() {
+    var unix_seconds = Date.now() / 1000 | 0;
+    var desiredConfig = 'desired' in doc && doc.desired && doc.desired.config;
+    var differences = {};
+    if (desiredConfig) {
+      differences = getDifferences(desiredConfig, body.config)
+    }
+
+    if (!differences) {
+      differences = {};
+    }
+    
+    return String(unix_seconds) + '\n' + JSON.stringify(differences); 
   }
 
-  var reportedConfig = doc.reported.state.config;
-  var reportedTimestamp = doc.reported.timestamp;
-  var desiredConfig = doc.desired;
-
-  var differences = getDifferences(desiredConfig, reportedConfig);
-
-  if (differences) {
-    emit([doc.thing, reportedTimestamp], differences);
-  }
+  return [updatedDoc(), buildResponse()]
 }

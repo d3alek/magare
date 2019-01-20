@@ -11,17 +11,13 @@ var adminDb;
 
 function doc(thing, timestamp, sense1, sense2) {
   return {
-    _id: thing + '/' + timestamp, 
+    _id: thing + '$' + timestamp, 
     thing: thing,
-    reported: {
-      state: {
-        senses: {
-          ...sense1,
-          ...sense2,
-        },
-      },
-      timestamp_utc: timestamp
-    }
+    senses: {
+      ...sense1,
+      ...sense2,
+    },
+    timestamp: timestamp
   }
 }
 

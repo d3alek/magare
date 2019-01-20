@@ -1,6 +1,9 @@
 function (doc) {
-  var reportedSenses = doc.reported.state.senses;
-  var timestamp = doc.reported.timestamp_utc;
+  if (!('senses' in doc)) {
+    return;
+  }
+  var reportedSenses = doc.senses;
+  var timestamp = doc.timestamp;
   var thing = doc.thing;
   emit([thing, timestamp], reportedSenses);
 }
