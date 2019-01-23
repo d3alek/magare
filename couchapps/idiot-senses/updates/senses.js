@@ -1,4 +1,10 @@
 function(doc, req) {
+  var userName = req.userCtx.name;
+
+  if (!userName) {
+    return [null, 'KO'];
+  }
+
   if (!doc) {
     log('No matching document, refusing senses');
     return [null, 'KO'];
@@ -18,6 +24,7 @@ function(doc, req) {
   function newDoc(senses) {
     return {
       _id: 'senses/' + doc._id + '$' + timestamp,
+      author: userName,
       thing: doc._id,
       timestamp: timestamp,
       senses: senses

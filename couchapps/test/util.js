@@ -42,6 +42,10 @@ exports.throwMessage = (err) => {
   throw Error('ERROR: ' + err.message);
 };
 
+exports.logMessage = (err) => {
+  console.log('ERROR: ' + err.message);
+};
+
 exports.key = (thing, timestamp) => {
   return thing + '$' + timestamp;
 }

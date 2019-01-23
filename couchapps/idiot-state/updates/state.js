@@ -1,4 +1,10 @@
 function(doc, req) {
+  var userName = req.userCtx.name;
+
+  if (!userName) {
+    return [null, 'KO'];
+  }
+
   if (!doc) {
     log('No matching document,  refusing report');
     return [null, 'KO'];
@@ -21,6 +27,7 @@ function(doc, req) {
     }
     doc.reported.state = body
     doc.reported.timestamp = timestamp
+    doc.author = userName;
     return doc
   }
 
