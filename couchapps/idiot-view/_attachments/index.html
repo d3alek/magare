@@ -1,0 +1,155 @@
+    <!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width" />
+            <title>Зеленик <!--# echo var="thing" --></title>
+            <link href="style/fontello/css/fontello.css" rel="stylesheet" type="text/css"/>
+            <link href="style/fontello/css/animation.css" rel="stylesheet" type="text/css"/>
+
+            <link href="style/style.css" rel="stylesheet" type="text/css" />
+            <link href="style/switch.css" rel="stylesheet" type="text/css" />
+            <link href="style/graph.css" rel="stylesheet" type="text/css" />
+            <link href="style/dual-ring.css" rel="stylesheet" type="text/css" />
+        </head>
+        <body>
+            <div id="app">
+            <!--# block name="none" -->None<!--# endblock -->
+
+            <h1>Зеленик 
+                <span id="thing"><!--# echo var='thing' --></span>
+            </h1> <span id="status"></span><span class="status-since"></span>
+
+
+            <hr />
+
+            <div id="plot-control">
+                <button id="change-plot-positions" class="button">Премести</button>
+                <form action="update" method="POST" enctype="multipart/form-data">
+
+                    <label for="plot-input" class="button">
+                        Качи нов чертеж
+                    </label>
+                    <input type="file" id="plot-input" name="plot" accept="image/png">
+                    <input id="change-plot" class="button" type="submit" value="Промени чертежа">
+                </form>
+                <div id="active-info"></div>
+            </div>
+            <div class="clear"></div>
+
+
+
+            <div id="plot">
+                <img class="plot-image" class="unselectable" src="plot.png">
+
+            </div>
+
+            <div class="clear"></div>
+            <button id="switch-graph" class="button button-warn">Стара графика</button>
+            <div id="graph-container">
+              <div class="loading hidden">
+                <div style="width:100%;height:100%;top:150px;left:350px;" class="lds-dual-ring">
+                  <div></div>
+                </div>
+              </div>
+
+              <div id="graph"></div>
+              <ul class="horizontal-list">
+                <li><button class="button graph-since" data-since-hours="1">Час</button></li>
+                <li><button class="button graph-since" data-since-hours="2">Два часа</button></li>
+                <li><button class="button graph-since" data-since-days="1" disabled>Ден</button></li>
+                <li><button class="button graph-since" data-since-days="2">Два дни</button></li>
+                <li><button class="button graph-since" data-since-days="7">Седмица</button></li>
+              </ul>
+            </div>
+
+            <div id="old-graph-container" class="hidden">
+              <img class="old-graph" src="graph-1-median-3.png">
+              <ul class="horizontal-list">
+                    <li>Ден</li>
+                    <li><a href="graph-2-median-3.png">Два дни</a></li>
+                    <li><a href="graph-7-median-3.png">Седмица</a></li>
+                    <li><a href="graph-31-median-3.png">Месец</a></li>
+                    <li><a href="graph-256-median-3.png">Година</a></li>
+                </ul>
+                <form action="graph" method="POST">
+                    <input type="radio" name="since" value="1" checked>Ден</input>
+                    <input type="radio" name="since" value="2">Два дни</input>
+                    <input type="radio" name="since" value="7">Седмица</input>
+                    <input type="radio" name="since" value="31">Месец</input>
+                    <input type="radio" name="since" value="256">Година</input>
+                    <input type="number" name="median" placeholder="Осредняване" value="3"></input>
+                    <input type="checkbox" name="wrongs" value="True">Маркирай грешките</input>
+                    <div id="graphable-checkboxes">
+                    </div>
+                    <div class="clear"></div>
+                    <input type="submit" class="button" value="Направи графика">
+                </form>
+            </div>
+            </div>
+
+            <button class="button" id="show-configuration">Настройки</button>
+
+            <div id="configuration">
+                <div>
+                    <pre id="enchanted"><!--#include file="enchanted.json" --></pre>
+                    <form id="enchanter-form" action="update" method="POST">
+                        <textarea id="enchanter-input" name="enchanter" wrap="off" rows="15" cols="40"><!--#include file="enchanter.json" stub="none"--></textarea>
+                        <br>
+                        <input class="button" type="submit" value="Запази">
+                    </form>
+
+                </div>
+
+                <div id="reported">
+                    <pre><!--#include file="reported.json" --></pre>
+                </div>
+
+                <div id="desired">
+                    <form id="desired-form" action="update" method="POST">
+                        <textarea id="desired-input" name="desired" wrap="off" rows="15" cols="40"><!--#include file="desired.json" stub="none"--></textarea>
+                        <br>
+                        <input class="button" type="submit" value="Запази">
+                    </form>
+                </div>
+
+                <div class="clear"></div>
+
+                <div id="displayables">
+                    <form id="displayables-form" action="update" method="POST">
+                        <textarea id="displayables-input" name="displayables" wrap="off" rows="10" cols="40"><!--#include file="displayables.json" stub="none"--></textarea>
+                        <br>
+                        <input type="submit" value="Запази" class="button">
+                    </form>
+                </div>
+
+                <form action="update" method="POST">
+                    <h1>Зеленик 
+                        <input type="text" name="thing-alias" value="<!--# echo var='thing' -->">
+                        <input class="button" type="submit" value="Запази">
+                    </h1>
+                </form>
+            </div>
+            </div>
+
+            <hr />
+            <footer>
+                <ul class="horizontal-list">
+                    <li>Зеленик 2017 (<!--# echo var="hostname" default="unknown_host" -->)</li>
+                    <li><a href="/">Начало</a></li>
+                    <li><a href="/db">Всички устройства</a></li>
+                    <li><a href="mailto:akodzhabashev@gmail.com">Свържете се с нас</a></li>
+                </ul>
+            </footer>
+            <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+            <script src="scripts/vue.js"></script>
+            <script src="scripts/event.js"></script>
+            <script src="scripts/plot.js"></script>
+            <!--<script src="view/scripts/graph.js"></script>-->
+            <script src="scripts/moment.js"></script>
+            <script src="scripts/d3.min.js"></script>
+            <script src="scripts/graph.js"></script>
+            <script src="scripts/status.js"></script>
+            <script src="scripts/script.js"></script>
+        </body>
+    </html>
