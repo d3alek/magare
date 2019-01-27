@@ -14,10 +14,9 @@
         </head>
         <body>
             <div id="app">
-            <!--# block name="none" -->None<!--# endblock -->
 
             <h1>Зеленик 
-                <span id="thing"><!--# echo var='thing' --></span>
+              <span id="thing">{{thing}}</span>
             </h1> <span id="status"></span><span class="status-since"></span>
 
 
@@ -142,11 +141,13 @@
                 </ul>
             </footer>
             <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+            <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+            <script src="scripts/moment.js"></script>
+            <script src="scripts/util.js"></script>
             <script src="scripts/vue.js"></script>
             <script src="scripts/event.js"></script>
             <script src="scripts/plot.js"></script>
             <!--<script src="view/scripts/graph.js"></script>-->
-            <script src="scripts/moment.js"></script>
             <script src="scripts/d3.min.js"></script>
             <script src="scripts/graph.js"></script>
             <script src="scripts/status.js"></script>

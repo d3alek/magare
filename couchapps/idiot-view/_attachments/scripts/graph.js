@@ -27,28 +27,29 @@ var writes_area = d3.area()
     .x(function(d) { return x(d.date); })
     .y1(function(d) { return writes_y(d.id); }) // TODO map d.id to writes_y range somehow
     .y0(function(d) { return writes_y(d.id) + writes_y.bandwidth(); })
-    .defined(function(d) { return d.value !== 0; });
+    .defined(function(d) { return d.value && d.value !== 0; });
 
 //var displayables_config = JSON.parse(document.getElementById("displayables-input").textContent);
 var displayables_config = app.displayablesConfig;
 
 function senses_line(id) {
-  if (displayables_config[id].type == "percent")
-    return percents_line;    
+  if (getConfig(id).type === "percent") {
+    return percents_line;
+  }
   
   return numbers_line;
 }
 
 function senses_y(id) {
-  if (displayables_config[id].type == "percent")
+  if (getConfig(id).type === "percent") {
     return percents_y;    
+  }
   
   return numbers_y;
 }
 
 function getAlias(sense_id) {
-  var config = displayables_config[sense_id];
-  if (!config) return sense_id;
+  var config = getConfig(sense_id);
   var alias = config.alias;
   if (alias)
     return alias;
@@ -56,10 +57,7 @@ function getAlias(sense_id) {
     return sense_id;
 };
 function getColor(sense_id) {
-  var config = displayables_config[sense_id];
-  if (!config) return sense_id;
-  var color = config.color;
-  return color;
+  return getConfig(sense_id).color;
 };
 
 d3.select("#switch-graph").on("click", function() {
@@ -82,12 +80,17 @@ function fetch_and_redraw() {
   d3.select(".loading").classed("hidden", false);
   since_days = this.dataset.sinceDays;
   since_hours = this.dataset.sinceHours;
-  if (since_days) 
-    query = "since_days=" + since_days
-  if (since_hours)
-    query = "since_hours=" + since_hours 
 
-  //d3.csv("history?" + query, type, redraw)
+  if (since_days) 
+    from = moment().utc().subtract(since_days, 'days')
+
+  if (since_hours)
+    from = moment().utc().subtract(since_hours, 'hours')
+
+  var to = moment().utc().add(1, 'minutes')
+
+  d3.json(historyViewQuery(app.thing, from, to), redraw);
+
   d3.select(".graph-since[disabled]").attr("disabled", null);
   d3.select(this).attr("disabled", true);
 };
@@ -95,7 +98,11 @@ function fetch_and_redraw() {
 d3.selectAll(".graph-since").on("click", fetch_and_redraw);
 
 d3.select(".loading").classed("hidden", false);
-d3.json("/idiot/_design/idiot-history/_view/history", redraw);
+var from = moment().utc().subtract(1, 'days');
+
+var to = moment().utc().add(1, 'minutes')
+
+d3.json(historyViewQuery(app.thing, from, to), redraw);
 
 function unwrap(wrapped) {
   return wrapped.split("(")[1].split(")")[0]
@@ -105,19 +112,21 @@ function redraw(error, data) {
   if (error) throw error;
 
   senseColumns = []
+  writeColumns = []
   data = data.rows.map(function (row) {
-    senses = row.value;
-    senseColumns = senseColumns.concat(Object.keys(senses))
-    return {date: new Date(row.key[1]), senses: senses}
+    var senses = row.value.senses;
+    var write = row.value.write;
+    senseColumns = senseColumns.concat(Object.keys(senses));
+    if (write) {
+      writeColumns = writeColumns.concat(Object.keys(write));
+    }
+    return {date: moment.utc([row.key[1], row.key[2], row.key[3], row.key[4], row.key[5], row.key[6]]), senses: senses, write: write}
   });
 
   senseColumns = Array.from(new Set(senseColumns));
 
-  //  sense_columns = data.columns.slice(1).filter(function(d) {
-  //    return d.lastIndexOf("sense(", 0) == 0;
-  //  });
   visible_sense_columns = senseColumns.filter(function(d) {
-    return true;//displayables_config[unwrap(d)].graph == "yes";
+    return getConfig(d).graph;
   });
 
   var senses = visible_sense_columns.map(function(id) {
@@ -129,25 +138,21 @@ function redraw(error, data) {
     };
   });
   var numbers = senses.filter(function(d) {
-    return true;//displayables_config[d.id].type !== "percent";
+    return getConfig(d.id).type !== "percent";
   });
 
-  //  write_columns = data.columns.slice(1).filter(function(d) {
-  //    return d.lastIndexOf("write(", 0) == 0
-  //  });
-  //  visible_write_columns = write_columns.filter(function(d) {
-  //    return displayables_config[unwrap(d)].graph == "yes";
-  //  });
-  //  var writes = visible_write_columns.map(function(id) {
-  //    return {
-  //      id: unwrap(id),
-  //      values: data.map(function(d) {
-  //        return {date: d.date, value: d[id], "id":unwrap(id)};
-  //      })
-  //    };
-  // });
-  writes = {}
-
+  writeColumns = Array.from(new Set(writeColumns));
+  visible_write_columns = writeColumns.filter(function(d) {
+    return getConfig(d).graph;
+  });
+  var writes = visible_write_columns.map(function(id) {
+    return {
+      id: id,
+      values: data.map(function(d) {
+        return {date: d.date, value: d.write ? d.write[id] : null, id: id};
+      })
+    };
+  });
   x.domain(d3.extent(data, function(d) { return d.date; }));
 
   numbers_y.domain([
@@ -155,12 +160,12 @@ function redraw(error, data) {
     d3.max(numbers, function(c) { return d3.max(c.values, function(d) { return d.value; }); })
   ]);
 
-  //percents_y.domain([0, 100]);
+  percents_y.domain([0, 100]);
 
-  //write_height = 10;
-  //writes_length = write_columns.length;
-  //below_x = 30
-  //writes_y.domain(write_columns.map(function(d) { return unwrap(d)}))
+  write_height = 10;
+  writes_length = writeColumns.length;
+  below_x = 30
+  writes_y.domain(writeColumns.map(function(d) { return d}))
 
   var dict = {"senses": senses, "writes": writes};
   var svg = d3.select("#graph")
@@ -233,7 +238,7 @@ function redraw(error, data) {
     .remove();
 
   var write = g.selectAll(".write")
-    .data(function(d) { return d["writes"]; }, function(d) {return d.id; });
+    .data(function(d) { return d.writes; }, function(d) {return d.id; });
 
   var writeEnter = write.enter()
     .append("g")
@@ -359,5 +364,10 @@ function type(d, _, columns) {
 }
 
 function parseValue(s) {
-  return parseInt(s.split('|')[0])
+  if (s) {
+    return parseInt(s.split('|')[0])
+  }
+  else {
+    return null;
+  }
 }

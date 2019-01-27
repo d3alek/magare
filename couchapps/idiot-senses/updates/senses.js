@@ -21,13 +21,14 @@ function(doc, req) {
 
   var timestamp = new Date().toISOString();
 
-  function newDoc(senses) {
+  function newDoc(sensesWrite) {
     return {
-      _id: 'senses/' + doc._id + '$' + timestamp,
+      _id: 'sensesWrite/' + doc._id + '$' + timestamp,
       author: userName,
       thing: doc._id,
       timestamp: timestamp,
-      senses: senses
+      senses: sensesWrite.senses,
+      write: sensesWrite.write
     }
   }
 

@@ -15,7 +15,6 @@ var MOVE_DISPLAYABLES = "move-displayables";
 
 window.state = INITIAL;
 
-//var enchanted = JSON.parse(document.getElementById("enchanted").innerText);
 var senses = app.senses;
 
 //var desired = JSON.parse(document.getElementById("desired-input").textContent);
@@ -36,6 +35,7 @@ AttachEvent(document.getElementById("plot-input"), "change", function() {
 
 if (!plot_image.complete) {
     AttachEvent(plot_image, "load", initialize_or_hide_plot);
+    AttachEvent(plot_image, "error", initialize_or_hide_plot);
 }
 else {
     initialize_or_hide_plot();
@@ -43,7 +43,7 @@ else {
 
 function initialize_or_hide_plot() {
     if (imageOk(plot_image)) {
-        initialize_plot(plot, plot_image, senses, desired.mode, enchanted.state.write, displayables_config, set_active, move_to_click_position);
+        initialize_plot(plot, plot_image, senses, desired.mode, state.write, displayables_config, set_active, move_to_click_position);
     }
     else {
         plot.style.display = "none";
@@ -51,7 +51,7 @@ function initialize_or_hide_plot() {
     }
 }
 
-// src http://stackoverflow.com/a/1977898;
+// src http://stackoverflow.com/a/1977898
 function imageOk(img) {
     // During the onload event, IE correctly identifies any images that
     // weren’t downloaded as not complete. Others should too. Gecko-based
@@ -64,7 +64,7 @@ function imageOk(img) {
     // naturalHeight. These give the true size of the image. If it failed
     // to load, either of these should be zero.;
 
-    if (img.naturalWidth === undefined && img.naturalWidth === 0) {
+    if (img.naturalWidth === undefined || img.naturalWidth === 0) {
         return false;
     }
 
@@ -240,7 +240,5 @@ function post_desired_switch(e) {
 
 // Status
 //
-status_span = document.getElementById('status');
-status_since_span = document.getElementsByClassName('status-since')[0];
 
-fillStatus(enchanted, status_span, status_since_span);
+d3.json("/idiot/" + app.thing, fillStatus)
