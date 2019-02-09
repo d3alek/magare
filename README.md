@@ -44,6 +44,5 @@ Then to update the design documents, specify a revision as the first argument in
 
 Each magare runs HAProxy on ports [80,443] and CouchDB on a random port. Each magare's HAProxy is configured to distribute traffic directly to the CouchDBs. That way if one magare fails, another can take over `magare.otselo.eu` (TODO).
 
-## Local testing
-
-> ansible-playbook -i dev magareta.yaml --ask-vault-pass -c docker
+## Couchapps
+- [Intelligent Device Internet of Things (Idiot)](https://github.com/d3alek/magare-idiot)
