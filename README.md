@@ -38,6 +38,7 @@ Then to update the design documents, specify a revision as the first argument in
 ## Ansible Galaxy requirements
 
 > ansible-galaxy install ipr-cnrs.nftables 
+> ansible-galaxy install geerlingguy.certbot
 
 ## Trully distributed
 
