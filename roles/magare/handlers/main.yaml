@@ -48,6 +48,3 @@
     state: restarted
     name: uwsgi
     enabled: yes 
-
-
-    

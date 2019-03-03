@@ -8,6 +8,9 @@
 - import_tasks: magare-sda.yaml
   become: yes
 
+- import_tasks: log.yaml
+  become: yes
+
 - name: setup nftables
   import_tasks: nftables.yaml
   become: yes
