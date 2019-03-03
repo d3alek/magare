@@ -1,0 +1,12 @@
+- name: make journald conf directory
+  file: 
+    name: /etc/systemd/journald.conf.d
+    state: directory
+
+- name: make logging persistent
+  ini_file:
+    path: /etc/systemd/journald.conf.d/persitent.conf
+    section: Journal
+    option: Storage
+    value: persistent
+  notify: Restart machine
