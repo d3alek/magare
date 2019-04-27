@@ -22,6 +22,12 @@ defaults
   stats enable
   stats uri /_haproxy_stats
   # stats auth admin:admin # Uncomment for basic auth
+  default-server init-addr last,libc,none
+
+resolvers dns
+  nameserver google-1  8.8.8.8:53
+  nameserver google-2  8.8.4.4:53
+  hold valid 1s
 
 frontend public-in
   bind :80
@@ -50,11 +56,11 @@ backend couchdbs
   http-check disable-on-404
 
 {% for magare in groups['magareta'] %}
-  server {{hostvars[magare].magare_name}} {{hostvars[magare].inventory_hostname}}:{{hostvars[magare].couchdb_port}} ssl check-ssl check inter 5s
+  server {{hostvars[magare].magare_name}} {{hostvars[magare].inventory_hostname}}:{{hostvars[magare].couchdb_port}} resolvers dns ssl check-ssl check inter 5s
 {% endfor %}
 
 backend letsencrypt-backend
-  server letsencrypt magare1.otselo.eu:54321
+  server letsencrypt magare1.otselo.eu:54321 resolvers dns
 
 backend local-backend
   server {{magare_name}} {{ansible_host}}:{{couchdb_port}} ssl check-ssl check inter 5s
